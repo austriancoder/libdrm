@@ -24,6 +24,10 @@
  *    Christian Gmeiner <christian.gmeiner@gmail.com>
  */
 
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
+
 #include "etnaviv_priv.h"
 #include "etnaviv_drmif.h"
 
@@ -205,7 +209,7 @@ void etna_bo_del(struct etna_bo *bo)
 		return;
 
 	if (bo->map)
-		munmap(bo->map, bo->size);
+		drm_munmap(bo->map, bo->size);
 
 	if (bo->fd)
 		close(bo->fd);
@@ -289,7 +293,7 @@ void * etna_bo_map(struct etna_bo *bo)
 			get_buffer_info(bo);
 		}
 
-		bo->map = mmap(0, bo->size, PROT_READ | PROT_WRITE,
+		bo->map = drm_mmap(0, bo->size, PROT_READ | PROT_WRITE,
 				MAP_SHARED, bo->dev->fd, bo->offset);
 		if (bo->map == MAP_FAILED) {
 			bo->map = NULL;

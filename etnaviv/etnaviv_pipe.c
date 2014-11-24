@@ -24,6 +24,10 @@
  *    Christian Gmeiner <christian.gmeiner@gmail.com>
  */
 
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
+
 #include "etnaviv_priv.h"
 
 int etna_pipe_get_param(struct etna_pipe *pipe,

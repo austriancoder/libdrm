@@ -34,11 +34,11 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <sys/mman.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <assert.h>
 
+#include "libdrm_macros.h"
 #include "xf86drm.h"
 #include "xf86atomic.h"
 
