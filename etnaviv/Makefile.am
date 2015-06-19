@@ -19,3 +19,5 @@ libdrm_etnavivinclude_HEADERS = $(LIBDRM_ETNAVIV_H_FILES)
 
 pkgconfigdir = @pkgconfigdir@
 pkgconfig_DATA = libdrm_etnaviv.pc
+
+EXTRA_DIST = Android.mk
