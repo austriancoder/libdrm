@@ -10,7 +10,10 @@ AM_CFLAGS = \
 libdrm_etnaviv_ladir = $(libdir)
 libdrm_etnaviv_la_LTLIBRARIES = libdrm_etnaviv.la
 libdrm_etnaviv_la_LDFLAGS = -version-number 0:0:0 -no-undefined
-libdrm_etnaviv_la_LIBADD = ../libdrm.la @PTHREADSTUBS_LIBS@
+libdrm_etnaviv_la_LIBADD = \
+	../libdrm.la \
+	@PTHREADSTUBS_LIBS@ \
+	@CLOCK_LIB@
 
 libdrm_etnaviv_la_SOURCES = $(LIBDRM_ETNAVIV_FILES)
 
