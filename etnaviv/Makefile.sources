@@ -1,0 +1,8 @@
+LIBDRM_ETNAVIV_FILES := \
+	etnaviv_device.c \
+	etnaviv_bo.c \
+	etnaviv_pipe.c \
+	etnaviv_cmd_stream.c
+
+LIBDRM_ETNAVIV_H_FILES := \
+	etnaviv_drmif.h
