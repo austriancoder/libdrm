@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Etnaviv Project
+ * Copyright (C) 2014-2015 Etnaviv Project
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -106,10 +106,15 @@ struct etna_bo {
 	struct list_head list[ETNA_MAX_PIPES];
 };
 
-struct etna_pipe {
-	enum etna_pipe_id id;
+struct etna_gpu {
 	struct etna_device *dev;
 	struct etna_specs specs;
+	uint32_t core;
+};
+
+struct etna_pipe {
+	enum etna_pipe_id id;
+	struct etna_gpu *gpu;
 };
 
 

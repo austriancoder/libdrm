@@ -1,6 +1,5 @@
 /*
- * Copyright (C) 2013 Red Hat
- * Author: Rob Clark <robdclark@gmail.com>
+ * Copyright (C) 2015 Etnaviv Project
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published by
@@ -18,14 +17,11 @@
 #ifndef __ETNAVIV_DRM_H__
 #define __ETNAVIV_DRM_H__
 
-#define __user
-
-#include <stddef.h>
-#include "drm.h"
+#include <drm/drm.h>
 
 /* Please note that modifications to all structs defined here are
  * subject to backwards-compatibility constraints:
- *  1) Do not use pointers, use uint64_t instead for 32 bit / 64 bit
+ *  1) Do not use pointers, use __u64 instead for 32 bit / 64 bit
  *     user/kernel compatibility
  *  2) Keep fields aligned to their size
  *  3) Because of how drm_ioctl() works, we can add new fields at
@@ -36,19 +32,13 @@
  *     fields.. so that has to be somehow ok.
  */
 
-#define ETNA_PIPE_3D      0x00
-#define ETNA_PIPE_2D      0x01
-#define ETNA_PIPE_VG      0x02
-
-#define ETNA_MAX_PIPES    3
-
 /* timeouts are specified in clock-monotonic absolute times (to simplify
  * restarting interrupted ioctls).  The following struct is logically the
  * same as 'struct timespec' but 32/64b ABI safe.
  */
 struct drm_etnaviv_timespec {
-	int64_t tv_sec;          /* seconds */
-	int64_t tv_nsec;         /* nanoseconds */
+	__s64 tv_sec;          /* seconds */
+	__s64 tv_nsec;         /* nanoseconds */
 };
 
 #define ETNAVIV_PARAM_GPU_MODEL                     0x01
@@ -70,12 +60,12 @@ struct drm_etnaviv_timespec {
 #define ETNAVIV_PARAM_GPU_INSTRUCTION_COUNT         0x18
 #define ETNAVIV_PARAM_GPU_NUM_CONSTANTS             0x19
 
-//#define MSM_PARAM_GMEM_SIZE  0x02
+#define ETNA_MAX_PIPES 4
 
 struct drm_etnaviv_param {
-	uint32_t pipe;           /* in, ETNA_PIPE_x */
-	uint32_t param;          /* in, ETNAVIV_PARAM_x */
-	uint64_t value;          /* out (get_param) or in (set_param) */
+	__u32 pipe;           /* in */
+	__u32 param;          /* in, ETNAVIV_PARAM_x */
+	__u64 value;          /* out (get_param) or in (set_param) */
 };
 
 /*
@@ -83,23 +73,24 @@ struct drm_etnaviv_param {
  */
 
 #define ETNA_BO_CMDSTREAM    0x00000001
-#define ETNA_BO_SCANOUT      0x00000002
 #define ETNA_BO_CACHE_MASK   0x000f0000
 /* cache modes */
 #define ETNA_BO_CACHED       0x00010000
 #define ETNA_BO_WC           0x00020000
 #define ETNA_BO_UNCACHED     0x00040000
+/* map flags */
+#define ETNA_BO_FORCE_MMU    0x00100000
 
 struct drm_etnaviv_gem_new {
-	uint64_t size;           /* in */
-	uint32_t flags;          /* in, mask of ETNA_BO_x */
-	uint32_t handle;         /* out */
+	__u64 size;           /* in */
+	__u32 flags;          /* in, mask of ETNA_BO_x */
+	__u32 handle;         /* out */
 };
 
 struct drm_etnaviv_gem_info {
-	uint32_t handle;         /* in */
-	uint32_t pad;
-	uint64_t offset;         /* out, offset to pass to mmap() */
+	__u32 handle;         /* in */
+	__u32 pad;
+	__u64 offset;         /* out, offset to pass to mmap() */
 };
 
 #define ETNA_PREP_READ        0x01
@@ -107,13 +98,13 @@ struct drm_etnaviv_gem_info {
 #define ETNA_PREP_NOSYNC      0x04
 
 struct drm_etnaviv_gem_cpu_prep {
-	uint32_t handle;         /* in */
-	uint32_t op;             /* in, mask of ETNA_PREP_x */
+	__u32 handle;         /* in */
+	__u32 op;             /* in, mask of ETNA_PREP_x */
 	struct drm_etnaviv_timespec timeout;   /* in */
 };
 
 struct drm_etnaviv_gem_cpu_fini {
-	uint32_t handle;         /* in */
+	__u32 handle;         /* in */
 };
 
 /*
@@ -121,30 +112,32 @@ struct drm_etnaviv_gem_cpu_fini {
  */
 
 /* The value written into the cmdstream is logically:
- *
- *   ((relocbuf->gpuaddr + reloc_offset) << shift) | or
- *
- * When we have GPU's w/ >32bit ptrs, it should be possible to deal
- * with this by emit'ing two reloc entries with appropriate shift
- * values.  Or a new ETNA_SUBMIT_CMD_x type would also be an option.
+ * relocbuf->gpuaddr + reloc_offset
  *
  * NOTE that reloc's must be sorted by order of increasing submit_offset,
  * otherwise EINVAL.
  */
 struct drm_etnaviv_gem_submit_reloc {
-	uint32_t submit_offset;  /* in, offset from submit_bo */
-	uint32_t or;             /* in, value OR'd with result */
-	int32_t  shift;          /* in, amount of left shift (can be negative) */
-	uint32_t reloc_idx;      /* in, index of reloc_bo buffer */
-	uint64_t reloc_offset;   /* in, offset from start of reloc_bo */
+	__u32 submit_offset;  /* in, offset from submit_bo */
+	__u32 reloc_idx;      /* in, index of reloc_bo buffer */
+	__u64 reloc_offset;   /* in, offset from start of reloc_bo */
 };
 
+/* submit-types:
+ *   BUF - this cmd buffer is executed normally.
+ *   CTX_RESTORE_BUF - only executed if there has been a GPU context
+ *      switch since the last SUBMIT ioctl
+ */
+#define ETNA_SUBMIT_CMD_BUF             0x0001
+#define ETNA_SUBMIT_CMD_CTX_RESTORE_BUF 0x0002
 struct drm_etnaviv_gem_submit_cmd {
-	uint32_t submit_idx;     /* in, index of submit_bo cmdstream buffer */
-	uint32_t size;           /* in, cmdstream size */
-	uint32_t pad;
-	uint32_t nr_relocs;      /* in, number of submit_reloc's */
-	uint64_t __user relocs;  /* in, ptr to array of submit_reloc's */
+	__u32 type;           /* in, one of ETNA_SUBMIT_CMD_x */
+	__u32 submit_idx;     /* in, index of submit_bo cmdstream buffer */
+	__u32 submit_offset;  /* in, offset into submit_bo */
+	__u32 size;           /* in, cmdstream size */
+	__u32 pad;
+	__u32 nr_relocs;      /* in, number of submit_reloc's */
+	__u64 relocs;         /* in, ptr to array of submit_reloc's */
 };
 
 /* Each buffer referenced elsewhere in the cmdstream submit (ie. the
@@ -161,21 +154,27 @@ struct drm_etnaviv_gem_submit_cmd {
 #define ETNA_SUBMIT_BO_READ             0x0001
 #define ETNA_SUBMIT_BO_WRITE            0x0002
 struct drm_etnaviv_gem_submit_bo {
-	uint32_t flags;          /* in, mask of ETNA_SUBMIT_BO_x */
-	uint32_t handle;         /* in, GEM handle */
+	__u32 flags;          /* in, mask of ETNA_SUBMIT_BO_x */
+	__u32 handle;         /* in, GEM handle */
+	__u64 presumed;       /* in/out, presumed buffer address */
 };
 
 /* Each cmdstream submit consists of a table of buffers involved, and
  * one or more cmdstream buffers.  This allows for conditional execution
  * (context-restore), and IB buffers needed for per tile/bin draw cmds.
  */
+#define ETNA_PIPE_3D      0x00
+#define ETNA_PIPE_2D      0x01
+#define ETNA_PIPE_VG      0x02
 struct drm_etnaviv_gem_submit {
-	uint32_t pipe;           /* in, ETNA_PIPE_x */
-	uint32_t fence;          /* out */
-	uint32_t nr_bos;         /* in, number of submit_bo's */
-	uint32_t pad;
-	uint64_t __user cmd;     /* in, ptr to submit_cmd */
-	uint64_t __user bos;     /* in, ptr to array of submit_bo's */
+	__u32 pipe;           /* in */
+	__u32 exec_state;     /* in, initial execution state (ETNA_PIPE_x) */
+	__u32 fence;          /* out */
+	__u32 nr_bos;         /* in, number of submit_bo's */
+	__u32 nr_cmds;        /* in, number of submit_cmd's */
+	__u32 pad;
+	__u64 bos;            /* in, ptr to array of submit_bo's */
+	__u64 cmds;           /* in, ptr to array of submit_cmd's */
 };
 
 /* The normal way to synchronize with the GPU is just to CPU_PREP on
@@ -186,14 +185,29 @@ struct drm_etnaviv_gem_submit {
  * APIs without requiring a dummy bo to synchronize on.
  */
 struct drm_etnaviv_wait_fence {
-	uint32_t pipe;           /* in, ETNA_PIPE_x */
-	uint32_t fence;          /* in */
+	__u32 pipe;           /* in */
+	__u32 fence;          /* in */
 	struct drm_etnaviv_timespec timeout;   /* in */
+};
+
+#define ETNA_USERPTR_READ	0x01
+#define ETNA_USERPTR_WRITE	0x02
+struct drm_etnaviv_gem_userptr {
+	__u64 user_ptr;	/* in, page aligned user pointer */
+	__u64 user_size;	/* in, page aligned user size */
+	__u32 flags;		/* in, flags */
+	__u32 handle;	/* out, non-zero handle */
+};
+
+struct drm_etnaviv_gem_wait {
+	__u32 pipe;				/* in */
+	__u32 handle;				/* in, bo to be waited for */
+	struct drm_etnaviv_timespec timeout;	/* in */
 };
 
 #define DRM_ETNAVIV_GET_PARAM          0x00
 /* placeholder:
-#define DRM_MSM_SET_PARAM              0x01
+#define DRM_ETNAVIV_SET_PARAM          0x01
  */
 #define DRM_ETNAVIV_GEM_NEW            0x02
 #define DRM_ETNAVIV_GEM_INFO           0x03
@@ -201,14 +215,18 @@ struct drm_etnaviv_wait_fence {
 #define DRM_ETNAVIV_GEM_CPU_FINI       0x05
 #define DRM_ETNAVIV_GEM_SUBMIT         0x06
 #define DRM_ETNAVIV_WAIT_FENCE         0x07
-#define DRM_ETNAVIV_NUM_IOCTLS         0x08
+#define DRM_ETNAVIV_GEM_USERPTR        0x08
+#define DRM_ETNAVIV_GEM_WAIT           0x09
+#define DRM_ETNAVIV_NUM_IOCTLS         0x0a
 
 #define DRM_IOCTL_ETNAVIV_GET_PARAM    DRM_IOWR(DRM_COMMAND_BASE + DRM_ETNAVIV_GET_PARAM, struct drm_etnaviv_param)
 #define DRM_IOCTL_ETNAVIV_GEM_NEW      DRM_IOWR(DRM_COMMAND_BASE + DRM_ETNAVIV_GEM_NEW, struct drm_etnaviv_gem_new)
 #define DRM_IOCTL_ETNAVIV_GEM_INFO     DRM_IOWR(DRM_COMMAND_BASE + DRM_ETNAVIV_GEM_INFO, struct drm_etnaviv_gem_info)
-#define DRM_IOCTL_ETNAVIV_GEM_CPU_PREP DRM_IOW (DRM_COMMAND_BASE + DRM_ETNAVIV_GEM_CPU_PREP, struct drm_etnaviv_gem_cpu_prep)
-#define DRM_IOCTL_ETNAVIV_GEM_CPU_FINI DRM_IOW (DRM_COMMAND_BASE + DRM_ETNAVIV_GEM_CPU_FINI, struct drm_etnaviv_gem_cpu_fini)
+#define DRM_IOCTL_ETNAVIV_GEM_CPU_PREP DRM_IOW(DRM_COMMAND_BASE + DRM_ETNAVIV_GEM_CPU_PREP, struct drm_etnaviv_gem_cpu_prep)
+#define DRM_IOCTL_ETNAVIV_GEM_CPU_FINI DRM_IOW(DRM_COMMAND_BASE + DRM_ETNAVIV_GEM_CPU_FINI, struct drm_etnaviv_gem_cpu_fini)
 #define DRM_IOCTL_ETNAVIV_GEM_SUBMIT   DRM_IOWR(DRM_COMMAND_BASE + DRM_ETNAVIV_GEM_SUBMIT, struct drm_etnaviv_gem_submit)
-#define DRM_IOCTL_ETNAVIV_WAIT_FENCE   DRM_IOW (DRM_COMMAND_BASE + DRM_ETNAVIV_WAIT_FENCE, struct drm_etnaviv_wait_fence)
+#define DRM_IOCTL_ETNAVIV_WAIT_FENCE   DRM_IOW(DRM_COMMAND_BASE + DRM_ETNAVIV_WAIT_FENCE, struct drm_etnaviv_wait_fence)
+#define DRM_IOCTL_ETNAVIV_GEM_USERPTR  DRM_IOWR(DRM_COMMAND_BASE + DRM_ETNAVIV_GEM_USERPTR, struct drm_etnaviv_gem_userptr)
+#define DRM_IOCTL_ETNAVIV_GEM_WAIT     DRM_IOW(DRM_COMMAND_BASE + DRM_ETNAVIV_GEM_WAIT, struct drm_etnaviv_gem_wait)
 
 #endif /* __ETNAVIV_DRM_H__ */

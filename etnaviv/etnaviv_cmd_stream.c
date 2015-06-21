@@ -72,7 +72,7 @@ struct etna_cmd_stream * etna_cmd_stream_new(struct etna_pipe *pipe)
 
 	for (i = 0; i < NUM_CMD_STREAMS; i++) {
 		void *tmp;
-		stream->stream[i] = etna_bo_new(pipe->dev, CMD_STREAM_SIZE, ETNA_BO_CMDSTREAM);
+		stream->stream[i] = etna_bo_new(pipe->gpu->dev, CMD_STREAM_SIZE, ETNA_BO_CMDSTREAM);
 
 		if (!stream->stream[i]) {
 			ERROR_MSG("allocation failed");
@@ -194,27 +194,29 @@ static uint32_t bo2idx(struct etna_cmd_stream *stream, struct etna_bo *bo,
 static void flush(struct etna_cmd_stream *stream)
 {
 	int ret, id = stream->pipe->id;
+	struct etna_gpu *gpu = stream->pipe->gpu;
 	struct etna_bo *etna_bo = NULL, *tmp;
 	struct drm_etnaviv_gem_submit_cmd *cmd = NULL;
-
-	struct drm_etnaviv_gem_submit req = {
-			.pipe = stream->pipe->id,
-	};
+	struct drm_etnaviv_gem_submit req;
 
 	/* we are done with cpu access */
 	etna_bo_cpu_fini(stream->stream[stream->current_stream]);
 
 	cmd = stream->submit_cmd;
+	cmd->type = ETNA_SUBMIT_CMD_BUF;
 	cmd->submit_idx = bo2idx(stream, stream->stream[stream->current_stream], ETNA_RELOC_READ);
 	cmd->size = stream->offset * 4; /* in bytes */
 	cmd->relocs = VOID2U64(stream->relocs);
 	cmd->nr_relocs = stream->nr_relocs;
 
-	req.cmd = VOID2U64(cmd);
+	req.pipe = gpu->core;
+	req.exec_state = id;
+	req.cmds = VOID2U64(cmd);
+	req.nr_cmds = 1;
 	req.bos = VOID2U64(stream->bos);
 	req.nr_bos = stream->nr_bos;
 
-	ret = drmCommandWriteRead(stream->pipe->dev->fd, DRM_ETNAVIV_GEM_SUBMIT,
+	ret = drmCommandWriteRead(gpu->dev->fd, DRM_ETNAVIV_GEM_SUBMIT,
 			&req, sizeof(req));
 
 	if (ret) {
@@ -253,13 +255,7 @@ void etna_cmd_stream_reloc(struct etna_cmd_stream *stream, const struct etna_rel
 
 	reloc->reloc_idx = bo2idx(stream, r->bo, r->flags);
 	reloc->reloc_offset = r->offset;
-	reloc->or = r->or;
-	reloc->shift = r->shift;
 	reloc->submit_offset = stream->offset * 4; /* in bytes */
 
-	if (r->shift < 0)
-		addr >>= -r->shift;
-	else
-		addr <<= r->shift;
-	etna_cmd_stream_emit(stream, addr | r->or);
+	etna_cmd_stream_emit(stream, addr);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Etnaviv Project
+ * Copyright (C) 2014-2015 Etnaviv Project
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -71,8 +71,6 @@ static inline void etna_set_state_from_bo(struct etna_cmd_stream *stream,
 		.bo = bo,
 		.flags = ETNA_RELOC_READ,
 		.offset = 0,
-		.or = 0,
-		.shift = 0,
 	});
 }
 
@@ -161,6 +159,7 @@ int main(int argc, char *argv[])
 	const size_t bmp_size = width * height * 4;
 
 	struct etna_device *dev;
+	struct etna_gpu *gpu;
 	struct etna_pipe *pipe;
 	struct etna_bo *bmp;
 	struct etna_cmd_stream *stream;
@@ -188,22 +187,29 @@ int main(int argc, char *argv[])
 		goto fail;
 	}
 
-	pipe = etna_pipe_new(dev, ETNA_PIPE_2D);
-	if (!pipe) {
+	/* TODO: we assume that core 0 is a 2D capable one */
+	gpu = etna_gpu_new(dev, 0);
+	if (!gpu) {
 		ret = 3;
+		goto fail;
+	}
+
+	pipe = etna_pipe_new(gpu, ETNA_PIPE_2D);
+	if (!pipe) {
+		ret = 4;
 		goto fail;
 	}
 
 	bmp = etna_bo_new(dev, bmp_size, ETNA_BO_UNCACHED);
 	if (!bmp) {
-		ret = 4;
+		ret = 5;
 		goto fail;
 	}
 	memset(etna_bo_map(bmp), 0, bmp_size);
 
 	stream = etna_cmd_stream_new(pipe);
 	if (!stream) {
-		ret = 5;
+		ret = 6;
 		goto fail;
 	}
 
@@ -220,6 +226,9 @@ fail:
 
 	if (pipe)
 		etna_pipe_del(pipe);
+
+	if (gpu)
+		etna_gpu_del(gpu);
 
 	if (dev)
 		etna_device_del(dev);

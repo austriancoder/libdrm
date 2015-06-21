@@ -32,6 +32,7 @@
 
 struct etna_bo;
 struct etna_pipe;
+struct etna_gpu;
 struct etna_device;
 struct etna_cmd_stream;
 
@@ -65,12 +66,13 @@ enum etna_param_id {
 
 /* bo flags: */
 #define DRM_ETNA_GEM_TYPE_CMDSTREAM     0x00000001
-#define DRM_ETNA_GEM_TYPE_SCANOUT       0x00000002
 #define DRM_ETNA_GEM_TYPE_MEM_MASK      0x0000000f
 #define DRM_ETNA_GEM_CACHE_CACHED       0x00010000
 #define DRM_ETNA_GEM_CACHE_WC           0x00020000
 #define DRM_ETNA_GEM_CACHE_UNCACHED     0x00040000
 #define DRM_ETNA_GEM_CACHE_MASK         0x000f0000
+/* map flags */
+#define DRM_ETNA_BO_FORCE_MMU           0x00100000
 
 /* bo access flags: (keep aligned to ETNA_PREP_x) */
 #define DRM_ETNA_PREP_READ              0x01
@@ -85,14 +87,20 @@ struct etna_device * etna_device_new_dup(int fd);
 struct etna_device * etna_device_ref(struct etna_device *dev);
 void etna_device_del(struct etna_device *dev);
 
+/* gpu functions:
+ */
+
+struct etna_gpu * etna_gpu_new(struct etna_device *dev, unsigned int core);
+void etna_gpu_del(struct etna_gpu *gpu);
+int etna_gpu_get_param(struct etna_gpu *gpu, enum etna_param_id param,
+		uint64_t *value);
+
 
 /* pipe functions:
  */
 
-struct etna_pipe * etna_pipe_new(struct etna_device *dev, enum etna_pipe_id id);
+struct etna_pipe * etna_pipe_new(struct etna_gpu *gpu, enum etna_pipe_id id);
 void etna_pipe_del(struct etna_pipe *pipe);
-int etna_pipe_get_param(struct etna_pipe *pipe, enum etna_param_id param,
-		uint64_t *value);
 int etna_pipe_wait(struct etna_pipe *pipe, uint32_t timestamp, uint32_t ms);
 
 
@@ -137,8 +145,6 @@ struct etna_reloc {
 #define ETNA_RELOC_WRITE            0x0002
 	uint32_t flags;
 	uint32_t offset;
-	uint32_t or;
-	int32_t  shift;
 };
 
 void etna_cmd_stream_reloc(struct etna_cmd_stream *stream, const struct etna_reloc *r);
