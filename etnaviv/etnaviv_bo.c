@@ -211,8 +211,10 @@ void etna_bo_del(struct etna_bo *bo)
 	if (bo->map)
 		drm_munmap(bo->map, bo->size);
 
-	if (bo->fd)
+	if (bo->fd >= 0) {
 		close(bo->fd);
+		bo->fd = -1;
+	}
 
 	if (bo->handle) {
 		struct drm_gem_close req = {
@@ -261,7 +263,7 @@ uint32_t etna_bo_handle(struct etna_bo *bo)
  */
 int etna_bo_dmabuf(struct etna_bo *bo)
 {
-	if (!bo->fd) {
+	if (bo->fd < 0) {
 		struct drm_prime_handle req = {
 				.handle = bo->handle,
 				.flags = DRM_CLOEXEC,
