@@ -181,8 +181,9 @@ struct etna_bo * etna_bo_from_dmabuf(struct etna_device *dev, int fd)
 		goto fail;
 	}
 
-	/* hmm, would be nice if we had a way to figure out the size.. */
-	size = 0;
+	/* lseek() to get bo size */
+	size = lseek(fd, 0, SEEK_END);
+	lseek(fd, 0, SEEK_CUR);
 
 	bo = lookup_bo(dev, req.handle);
 	if (!bo) {
