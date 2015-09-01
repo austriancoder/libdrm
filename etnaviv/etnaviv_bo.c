@@ -169,14 +169,12 @@ out_unlock:
 struct etna_bo * etna_bo_from_dmabuf(struct etna_device *dev, int fd)
 {
 	struct etna_bo *bo = NULL;
-	struct drm_prime_handle req = {
-			.fd = fd,
-	};
 	int ret, size;
+	uint32_t handle;
 
 	pthread_mutex_lock(&table_lock);
 
-	ret = drmIoctl(dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &req);
+	ret = drmPrimeFDToHandle(dev->fd, fd, &handle);
 	if (ret) {
 		goto fail;
 	}
@@ -185,9 +183,9 @@ struct etna_bo * etna_bo_from_dmabuf(struct etna_device *dev, int fd)
 	size = lseek(fd, 0, SEEK_END);
 	lseek(fd, 0, SEEK_CUR);
 
-	bo = lookup_bo(dev, req.handle);
+	bo = lookup_bo(dev, handle);
 	if (!bo) {
-		bo = bo_from_handle(dev, size, req.handle);
+		bo = bo_from_handle(dev, size, handle);
 	}
 
 	pthread_mutex_unlock(&table_lock);
@@ -265,18 +263,15 @@ uint32_t etna_bo_handle(struct etna_bo *bo)
 int etna_bo_dmabuf(struct etna_bo *bo)
 {
 	if (bo->fd < 0) {
-		struct drm_prime_handle req = {
-				.handle = bo->handle,
-				.flags = DRM_CLOEXEC,
-		};
-		int ret;
+		int ret, prime_fd;
 
-		ret = drmIoctl(bo->dev->fd, DRM_IOCTL_PRIME_HANDLE_TO_FD, &req);
+		ret = drmPrimeHandleToFD(bo->dev->fd, bo->handle, DRM_CLOEXEC,
+					&prime_fd);
 		if (ret) {
 			return ret;
 		}
 
-		bo->fd = req.fd;
+		bo->fd = prime_fd;
 	}
 	return dup(bo->fd);
 }
