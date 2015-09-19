@@ -122,15 +122,13 @@ struct etna_pipe {
 
 struct etna_cmd_stream {
 	struct etna_pipe *pipe;
-	struct etna_bo *stream[NUM_CMD_STREAMS];
+	uint32_t *stream[NUM_CMD_STREAMS];
 	int current_stream;
 	uint32_t *cmd;
 	uint32_t offset;
 
 	struct list_head submit_list;
 	uint32_t last_timestamp;
-
-	struct drm_etnaviv_gem_submit_cmd *submit_cmd;
 
 	/* bo's table: */
 	struct drm_etnaviv_gem_submit_bo *bos;
