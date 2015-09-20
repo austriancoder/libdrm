@@ -117,14 +117,9 @@ struct etna_pipe {
 	struct etna_gpu *gpu;
 };
 
-
-#define NUM_CMD_STREAMS 	5
-
 struct etna_cmd_stream {
 	struct etna_pipe *pipe;
-	uint32_t *stream[NUM_CMD_STREAMS];
-	int current_stream;
-	uint32_t *cmd;
+	uint32_t *buffer;
 	uint32_t offset;
 
 	struct list_head submit_list;

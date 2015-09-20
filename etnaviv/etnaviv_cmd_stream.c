@@ -53,10 +53,9 @@ static void *grow(void *ptr, uint32_t nr, uint32_t *max, uint32_t sz)
 	(x)->nr_ ## name ++; \
 })
 
-struct etna_cmd_stream * etna_cmd_stream_new(struct etna_pipe *pipe)
+struct etna_cmd_stream *etna_cmd_stream_new(struct etna_pipe *pipe)
 {
 	struct etna_cmd_stream *stream;
-	int i;
 
 	stream = calloc(1, sizeof(*stream));
 	if (!stream) {
@@ -64,17 +63,14 @@ struct etna_cmd_stream * etna_cmd_stream_new(struct etna_pipe *pipe)
 		goto fail;
 	}
 
-	for (i = 0; i < NUM_CMD_STREAMS; i++) {
-		stream->stream[i] = malloc(CMD_STREAM_SIZE);
-		if (!stream->stream[i]) {
-			ERROR_MSG("allocation failed");
-			goto fail;
-		}
+	stream->buffer = malloc(CMD_STREAM_SIZE);
+	if (!stream->buffer) {
+		ERROR_MSG("allocation failed");
+		goto fail;
 	}
 
 	list_inithead(&stream->submit_list);
 
-	stream->cmd = stream->stream[0];
 	stream->pipe = pipe;
 
 	return stream;
@@ -87,23 +83,14 @@ fail:
 
 void etna_cmd_stream_del(struct etna_cmd_stream *stream)
 {
-	int i;
-
-	for (i = 0; i < NUM_CMD_STREAMS; i++) {
-		free(stream->stream[i]);
-	}
-
+	free(stream->buffer);
 	free(stream->relocs);
 	free(stream);
 }
 
-static void switch_to_next_buffer(struct etna_cmd_stream *stream)
+static void reset_buffer(struct etna_cmd_stream *stream)
 {
-	int cmd_steam_idx = (stream->current_stream + 1) % NUM_CMD_STREAMS;
-
-	stream->current_stream = cmd_steam_idx;
 	stream->offset = 0;
-	stream->cmd = stream->stream[cmd_steam_idx];
 	stream->nr_bos = 0;
 	stream->nr_relocs = 0;
 }
@@ -118,23 +105,23 @@ void etna_cmd_stream_reserve(struct etna_cmd_stream *stream, size_t n)
 	}
 
 	etna_cmd_stream_flush(stream);
-	switch_to_next_buffer(stream);
+	reset_buffer(stream);
 }
 
 void etna_cmd_stream_emit(struct etna_cmd_stream *stream, uint32_t data)
 {
-	stream->cmd[stream->offset++] = data;
+	stream->buffer[stream->offset++] = data;
 }
 
 uint32_t etna_cmd_stream_get(struct etna_cmd_stream *stream, uint32_t offset)
 {
-	return stream->cmd[offset];
+	return stream->buffer[offset];
 }
 
 void etna_cmd_stream_set(struct etna_cmd_stream *stream, uint32_t offset,
 		uint32_t data)
 {
-	stream->cmd[offset] = data;
+	stream->buffer[offset] = data;
 }
 
 uint32_t etna_cmd_stream_offset(struct etna_cmd_stream *stream)
@@ -186,7 +173,7 @@ static void flush(struct etna_cmd_stream *stream)
 	req.nr_bos = stream->nr_bos;
 	req.relocs = VOID2U64(stream->relocs);
 	req.nr_relocs = stream->nr_relocs;
-	req.stream = VOID2U64(stream->cmd);
+	req.stream = VOID2U64(stream->buffer);
 	req.stream_size = stream->offset * 4; /* in bytes */
 
 	ret = drmCommandWriteRead(gpu->dev->fd, DRM_ETNAVIV_GEM_SUBMIT,
@@ -208,14 +195,14 @@ static void flush(struct etna_cmd_stream *stream)
 void etna_cmd_stream_flush(struct etna_cmd_stream *stream)
 {
 	flush(stream);
-	switch_to_next_buffer(stream);
+	reset_buffer(stream);
 }
 
 void etna_cmd_stream_finish(struct etna_cmd_stream *stream)
 {
 	flush(stream);
 	etna_pipe_wait(stream->pipe, stream->last_timestamp, 5000);
-	switch_to_next_buffer(stream);
+	reset_buffer(stream);
 }
 
 void etna_cmd_stream_reloc(struct etna_cmd_stream *stream, const struct etna_reloc *r)
