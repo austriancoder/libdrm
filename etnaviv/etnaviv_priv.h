@@ -132,6 +132,9 @@ struct etna_cmd_stream {
 	/* reloc's table: */
 	struct drm_etnaviv_gem_submit_reloc *relocs;
 	uint32_t nr_relocs, max_relocs;
+
+	/* notify callback if buffer reset happend */
+	void (*reset_notify)(struct etna_cmd_stream *stream);
 };
 
 #define ALIGN(v,a) (((v) + (a) - 1) & ~((a) - 1))

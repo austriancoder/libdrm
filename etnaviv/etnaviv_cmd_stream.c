@@ -53,7 +53,8 @@ static void *grow(void *ptr, uint32_t nr, uint32_t *max, uint32_t sz)
 	(x)->nr_ ## name ++; \
 })
 
-struct etna_cmd_stream *etna_cmd_stream_new(struct etna_pipe *pipe)
+struct etna_cmd_stream *etna_cmd_stream_new(struct etna_pipe *pipe,
+		void (*reset_notify)(struct etna_cmd_stream *stream))
 {
 	struct etna_cmd_stream *stream;
 
@@ -72,6 +73,7 @@ struct etna_cmd_stream *etna_cmd_stream_new(struct etna_pipe *pipe)
 	list_inithead(&stream->submit_list);
 
 	stream->pipe = pipe;
+	stream->reset_notify = reset_notify;
 
 	return stream;
 
@@ -93,6 +95,9 @@ static void reset_buffer(struct etna_cmd_stream *stream)
 	stream->offset = 0;
 	stream->nr_bos = 0;
 	stream->nr_relocs = 0;
+
+	if (stream->reset_notify)
+		stream->reset_notify(stream);
 }
 
 void etna_cmd_stream_reserve(struct etna_cmd_stream *stream, size_t n)
