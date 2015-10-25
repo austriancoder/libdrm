@@ -128,7 +128,8 @@ void etna_bo_cpu_fini(struct etna_bo *bo);
  */
 
 struct etna_cmd_stream * etna_cmd_stream_new(struct etna_pipe *pipe,
-		void (*reset_notify)(struct etna_cmd_stream *stream));
+		void (*reset_notify)(struct etna_cmd_stream *stream, void *priv),
+		void *priv);
 void etna_cmd_stream_del(struct etna_cmd_stream *stream);
 void etna_cmd_stream_reserve(struct etna_cmd_stream *stream, size_t n);
 void etna_cmd_stream_emit(struct etna_cmd_stream *stream, uint32_t data);

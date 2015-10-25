@@ -134,7 +134,8 @@ struct etna_cmd_stream {
 	uint32_t nr_relocs, max_relocs;
 
 	/* notify callback if buffer reset happend */
-	void (*reset_notify)(struct etna_cmd_stream *stream);
+	void (*reset_notify)(struct etna_cmd_stream *stream, void *priv);
+	void *reset_notify_priv;
 };
 
 #define ALIGN(v,a) (((v) + (a) - 1) & ~((a) - 1))
