@@ -112,7 +112,6 @@ void etna_cmd_stream_reserve(struct etna_cmd_stream *stream, size_t n)
 	}
 
 	etna_cmd_stream_flush(stream);
-	reset_buffer(stream);
 }
 
 void etna_cmd_stream_emit(struct etna_cmd_stream *stream, uint32_t data)
