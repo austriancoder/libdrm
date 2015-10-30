@@ -117,10 +117,9 @@ struct etna_pipe {
 	struct etna_gpu *gpu;
 };
 
-struct etna_cmd_stream {
+struct etna_cmd_stream_priv {
+	struct etna_cmd_stream base;
 	struct etna_pipe *pipe;
-	uint32_t *buffer;
-	uint32_t offset;
 
 	struct list_head submit_list;
 	uint32_t last_timestamp;

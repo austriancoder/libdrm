@@ -127,19 +127,53 @@ void etna_bo_cpu_fini(struct etna_bo *bo);
 /* cmd stream functions:
  */
 
+struct etna_cmd_stream {
+	uint32_t *buffer;
+	uint32_t offset;	/* dwords */
+	uint32_t size;		/* bytes */
+};
+
 struct etna_cmd_stream * etna_cmd_stream_new(struct etna_pipe *pipe,
 		void (*reset_notify)(struct etna_cmd_stream *stream, void *priv),
 		void *priv);
 void etna_cmd_stream_del(struct etna_cmd_stream *stream);
-void etna_cmd_stream_reserve(struct etna_cmd_stream *stream, size_t n);
-void etna_cmd_stream_emit(struct etna_cmd_stream *stream, uint32_t data);
-uint32_t etna_cmd_stream_get(struct etna_cmd_stream *stream, uint32_t offset);
-void etna_cmd_stream_set(struct etna_cmd_stream *stream, uint32_t offset,
-		uint32_t data);
-uint32_t etna_cmd_stream_offset(struct etna_cmd_stream *stream);
 uint32_t etna_cmd_stream_timestamp(struct etna_cmd_stream *stream);
 void etna_cmd_stream_flush(struct etna_cmd_stream *stream);
 void etna_cmd_stream_finish(struct etna_cmd_stream *stream);
+
+static inline uint32_t etna_cmd_stream_avail(struct etna_cmd_stream *stream)
+{
+	static const uint32_t END_CLEARANCE = 24; /* LINK op code */
+
+	return stream->size - (stream->offset * 4) - END_CLEARANCE;
+}
+
+static inline void etna_cmd_stream_reserve(struct etna_cmd_stream *stream, size_t n)
+{
+	if (etna_cmd_stream_avail(stream) < n)
+		etna_cmd_stream_flush(stream);
+}
+
+static inline void etna_cmd_stream_emit(struct etna_cmd_stream *stream, uint32_t data)
+{
+	stream->buffer[stream->offset++] = data;
+}
+
+static inline uint32_t etna_cmd_stream_get(struct etna_cmd_stream *stream, uint32_t offset)
+{
+	return stream->buffer[offset];
+}
+
+static inline void etna_cmd_stream_set(struct etna_cmd_stream *stream, uint32_t offset,
+		uint32_t data)
+{
+	stream->buffer[offset] = data;
+}
+
+static inline uint32_t etna_cmd_stream_offset(struct etna_cmd_stream *stream)
+{
+	return stream->offset;
+}
 
 struct etna_reloc {
 	struct etna_bo *bo;
