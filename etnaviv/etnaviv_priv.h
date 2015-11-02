@@ -42,7 +42,7 @@
 #include "xf86drm.h"
 #include "xf86atomic.h"
 
-#include "list.h"
+#include "util_double_list.h"
 
 #include "etnaviv_drmif.h"
 //#include "drm.h"
