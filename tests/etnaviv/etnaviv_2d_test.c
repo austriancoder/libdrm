@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
 	}
 	memset(etna_bo_map(bmp), 0, bmp_size);
 
-	stream = etna_cmd_stream_new(pipe, NULL, NULL);
+	stream = etna_cmd_stream_new(pipe, 0x300, NULL, NULL);
 	if (!stream) {
 		ret = 6;
 		goto fail;

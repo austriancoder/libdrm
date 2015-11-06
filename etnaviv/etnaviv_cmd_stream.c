@@ -58,11 +58,16 @@ etna_cmd_stream_priv(struct etna_cmd_stream *stream)
     return (struct etna_cmd_stream_priv *)stream;
 }
 
-struct etna_cmd_stream *etna_cmd_stream_new(struct etna_pipe *pipe,
+struct etna_cmd_stream *etna_cmd_stream_new(struct etna_pipe *pipe, uint32_t size,
 		void (*reset_notify)(struct etna_cmd_stream *stream, void *priv),
 		void *priv)
 {
-	struct etna_cmd_stream_priv *stream;
+	struct etna_cmd_stream_priv *stream = NULL;
+
+	if (size == 0) {
+		ERROR_MSG("invalid size of 0");
+		goto fail;
+	}
 
 	stream = calloc(1, sizeof(*stream));
 	if (!stream) {
@@ -70,7 +75,10 @@ struct etna_cmd_stream *etna_cmd_stream_new(struct etna_pipe *pipe,
 		goto fail;
 	}
 
-	stream->base.buffer = malloc(CMD_STREAM_SIZE * sizeof(uint32_t));
+	/* allocate even number of 32-bit words */
+	size = ALIGN(size, 2);
+
+	stream->base.buffer = malloc(size * sizeof(uint32_t));
 	if (!stream->base.buffer) {
 		ERROR_MSG("allocation failed");
 		goto fail;
@@ -78,7 +86,7 @@ struct etna_cmd_stream *etna_cmd_stream_new(struct etna_pipe *pipe,
 
 	list_inithead(&stream->submit_list);
 
-	stream->base.size = CMD_STREAM_SIZE;
+	stream->base.size = size;
 	stream->pipe = pipe;
 	stream->reset_notify = reset_notify;
 	stream->reset_notify_priv = priv;
