@@ -33,8 +33,6 @@
 #include "etnaviv_drmif.h"
 #include "etnaviv_priv.h"
 
-#define CMD_STREAM_SIZE				0x8000
-
 static void *grow(void *ptr, uint32_t nr, uint32_t *max, uint32_t sz)
 {
 	if ((nr + 1) > *max) {
