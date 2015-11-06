@@ -99,7 +99,6 @@ struct etna_bo {
 	uint32_t        handle;
 	uint32_t        name;           /* flink global handle (DRI2 name) */
 	uint64_t        offset;         /* offset to mmap() */
-	int             fd;             /* dmabuf handle */
 	atomic_t        refcnt;
 
 	uint32_t indexp1[ETNA_MAX_PIPES]; /* index plus 1 */

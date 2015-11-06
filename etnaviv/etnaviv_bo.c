@@ -210,11 +210,6 @@ void etna_bo_del(struct etna_bo *bo)
 	if (bo->map)
 		drm_munmap(bo->map, bo->size);
 
-	if (bo->fd >= 0) {
-		close(bo->fd);
-		bo->fd = -1;
-	}
-
 	if (bo->handle) {
 		struct drm_gem_close req = {
 				.handle = bo->handle,
@@ -262,18 +257,16 @@ uint32_t etna_bo_handle(struct etna_bo *bo)
  */
 int etna_bo_dmabuf(struct etna_bo *bo)
 {
-	if (bo->fd < 0) {
-		int ret, prime_fd;
+	int ret, prime_fd;
 
-		ret = drmPrimeHandleToFD(bo->dev->fd, bo->handle, DRM_CLOEXEC,
-					&prime_fd);
-		if (ret) {
-			return ret;
-		}
-
-		bo->fd = prime_fd;
+	ret = drmPrimeHandleToFD(bo->dev->fd, bo->handle, DRM_CLOEXEC,
+				&prime_fd);
+	if (ret) {
+		ERROR_MSG("failed to get dmabuf fd: %d", ret);
+		return ret;
 	}
-	return dup(bo->fd);
+
+	return prime_fd;
 }
 
 uint32_t etna_bo_size(struct etna_bo *bo)
