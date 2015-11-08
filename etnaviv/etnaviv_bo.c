@@ -287,6 +287,7 @@ void * etna_bo_map(struct etna_bo *bo)
 		bo->map = drm_mmap(0, bo->size, PROT_READ | PROT_WRITE,
 				MAP_SHARED, bo->dev->fd, bo->offset);
 		if (bo->map == MAP_FAILED) {
+			ERROR_MSG("mmap failed: %s", strerror(errno));
 			bo->map = NULL;
 		}
 	}
