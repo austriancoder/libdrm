@@ -44,38 +44,17 @@
 #include "etnaviv_drmif.h"
 
 static pthread_mutex_t table_lock = PTHREAD_MUTEX_INITIALIZER;
-static void * dev_table;
-
-static struct etna_device * etna_device_new_impl(int fd)
-{
-	struct etna_device *dev = calloc(sizeof(*dev), 1);
-	if (!dev)
-		return NULL;
-	dev->fd = fd;
-	atomic_set(&dev->refcnt, 1);
-	dev->handle_table = drmHashCreate();
-	return dev;
-}
 
 struct etna_device * etna_device_new(int fd)
 {
-	struct etna_device *dev = NULL;
+	struct etna_device *dev = calloc(sizeof(*dev), 1);
 
-	pthread_mutex_lock(&table_lock);
+	if (!dev)
+		return NULL;
 
-	if (!dev_table)
-		dev_table = drmHashCreate();
-
-	if (drmHashLookup(dev_table, fd, (void **)&dev)) {
-		/* not found, create new device */
-		dev = etna_device_new_impl(fd);
-		drmHashInsert(dev_table, fd, dev);
-	} else {
-		/* found, just incr refcnt */
-		dev = etna_device_ref(dev);
-	}
-
-	pthread_mutex_unlock(&table_lock);
+	atomic_set(&dev->refcnt, 1);
+	dev->fd = fd;
+	dev->handle_table = drmHashCreate();
 
 	return dev;
 }
@@ -92,7 +71,6 @@ void etna_device_del(struct etna_device *dev)
 		return;
 	pthread_mutex_lock(&table_lock);
 	drmHashDestroy(dev->handle_table);
-	drmHashDelete(dev_table, dev->fd);
 	pthread_mutex_unlock(&table_lock);
 	free(dev);
 }
