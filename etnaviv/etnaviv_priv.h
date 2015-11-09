@@ -123,13 +123,16 @@ struct etna_cmd_stream_priv {
 	struct list_head submit_list;
 	uint32_t last_timestamp;
 
-	/* bo's table: */
-	struct drm_etnaviv_gem_submit_bo *bos;
-	uint32_t nr_bos, max_bos;
+	/* submit ioctl related tables: */
+	struct {
+		/* bo's table: */
+		struct drm_etnaviv_gem_submit_bo *bos;
+		uint32_t nr_bos, max_bos;
 
-	/* reloc's table: */
-	struct drm_etnaviv_gem_submit_reloc *relocs;
-	uint32_t nr_relocs, max_relocs;
+		/* reloc's table: */
+		struct drm_etnaviv_gem_submit_reloc *relocs;
+		uint32_t nr_relocs, max_relocs;
+	} submit;
 
 	/* notify callback if buffer reset happend */
 	void (*reset_notify)(struct etna_cmd_stream *stream, void *priv);
