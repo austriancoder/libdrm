@@ -55,6 +55,7 @@ struct etna_device * etna_device_new(int fd)
 	atomic_set(&dev->refcnt, 1);
 	dev->fd = fd;
 	dev->handle_table = drmHashCreate();
+	dev->name_table = drmHashCreate();
 
 	return dev;
 }
@@ -71,6 +72,7 @@ void etna_device_del(struct etna_device *dev)
 		return;
 	pthread_mutex_lock(&table_lock);
 	drmHashDestroy(dev->handle_table);
+	drmHashDestroy(dev->name_table);
 	pthread_mutex_unlock(&table_lock);
 	free(dev);
 }

@@ -79,16 +79,16 @@ struct etna_device {
 	int fd;
 	atomic_t refcnt;
 
-	/* The handle_table is used to track GEM bo handles associated w/
-	 * this fd.  This is needed, in particular, when importing
-	 * dmabuf's because we don't want multiple 'struct etna_bo's
-	 * floating around with the same handle.  Otherwise, when the
-	 * first one is etna_bo_del()'d the handle becomes no longer
-	 * valid, and the remaining 'struct etna_bo's are left pointing
-	 * to an invalid handle (and possible a GEM bo that is already
-	 * free'd).
+	/* tables to keep track of bo's, to avoid "evil-twin" etna_bo objects:
+	 *
+	 *   handle_table: maps handle to etna_bo
+	 *   name_table: maps flink name to etna_bo
+	 *
+	 * We end up needing two tables, because DRM_IOCTL_GEM_OPEN always
+	 * returns a new handle.  So we need to figure out if the bo is already
+	 * open in the process first, before calling gem-open.
 	 */
-	void *handle_table;
+	void *handle_table, *name_table;
 };
 
 /* a GEM buffer object allocated from the DRM device */

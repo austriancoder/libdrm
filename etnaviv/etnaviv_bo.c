@@ -37,16 +37,15 @@ static pthread_mutex_t table_lock = PTHREAD_MUTEX_INITIALIZER;
 static void set_name(struct etna_bo *bo, uint32_t name)
 {
 	bo->name = name;
-	/* add ourself into the handle table: */
-	drmHashInsert(bo->dev->handle_table, name, bo);
+	/* add ourself into the name table: */
+	drmHashInsert(bo->dev->name_table, name, bo);
 }
 
 /* lookup a buffer from it's handle, call w/ table_lock held: */
-static struct etna_bo * lookup_bo(struct etna_device *dev,
-		uint32_t handle)
+static struct etna_bo * lookup_bo(void *tbl, uint32_t handle)
 {
 	struct etna_bo *bo = NULL;
-	if (!drmHashLookup(dev->handle_table, handle, (void **)&bo)) {
+	if (!drmHashLookup(tbl, handle, (void **)&bo)) {
 		/* found, incr refcnt and return: */
 		bo = etna_bo_ref(bo);
 	}
@@ -139,7 +138,7 @@ struct etna_bo * etna_bo_from_name(struct etna_device *dev, uint32_t name)
 	pthread_mutex_lock(&table_lock);
 
 	/* check name table first, to see if bo is already open: */
-	bo = lookup_bo(dev, req.handle);
+	bo = lookup_bo(dev->name_table, req.handle);
 	if (bo)
 		goto out_unlock;
 
@@ -148,7 +147,7 @@ struct etna_bo * etna_bo_from_name(struct etna_device *dev, uint32_t name)
 		goto out_unlock;
 	}
 
-	bo = lookup_bo(dev, req.handle);
+	bo = lookup_bo(dev->handle_table, req.handle);
 	if (bo)
 		goto out_unlock;
 
@@ -176,25 +175,23 @@ struct etna_bo * etna_bo_from_dmabuf(struct etna_device *dev, int fd)
 
 	ret = drmPrimeFDToHandle(dev->fd, fd, &handle);
 	if (ret) {
-		goto fail;
+		return NULL;
 	}
+
+	bo = lookup_bo(dev->handle_table, handle);
+	if (bo)
+		goto out_unlock;
 
 	/* lseek() to get bo size */
 	size = lseek(fd, 0, SEEK_END);
 	lseek(fd, 0, SEEK_CUR);
 
-	bo = lookup_bo(dev, handle);
-	if (!bo) {
-		bo = bo_from_handle(dev, size, handle);
-	}
-
-	pthread_mutex_unlock(&table_lock);
+	bo = bo_from_handle(dev, size, handle);
 
 	return bo;
 
-fail:
+out_unlock:
 	pthread_mutex_unlock(&table_lock);
-	free(bo);
 	return NULL;
 }
 
@@ -209,6 +206,9 @@ void etna_bo_del(struct etna_bo *bo)
 
 	if (bo->map)
 		drm_munmap(bo->map, bo->size);
+
+	if (bo->name)
+		drmHashDelete(bo->dev->name_table, bo->name);
 
 	if (bo->handle) {
 		struct drm_gem_close req = {
