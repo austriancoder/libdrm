@@ -188,11 +188,9 @@ struct etna_bo * etna_bo_from_dmabuf(struct etna_device *dev, int fd)
 
 	bo = bo_from_handle(dev, size, handle);
 
-	return bo;
-
 out_unlock:
 	pthread_mutex_unlock(&table_lock);
-	return NULL;
+	return bo;
 }
 
 /* destroy a buffer object */
