@@ -232,7 +232,9 @@ int etna_bo_get_name(struct etna_bo *bo, uint32_t *name)
 			return ret;
 		}
 
-		bo->name = req.name;
+		pthread_mutex_lock(&table_lock);
+		set_name(bo, req.name);
+		pthread_mutex_unlock(&table_lock);
 	}
 
 	*name = bo->name;
