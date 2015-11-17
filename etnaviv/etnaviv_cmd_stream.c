@@ -33,6 +33,8 @@
 #include "etnaviv_drmif.h"
 #include "etnaviv_priv.h"
 
+static pthread_mutex_t idx_lock = PTHREAD_MUTEX_INITIALIZER;
+
 static void *grow(void *ptr, uint32_t nr, uint32_t *max, uint32_t sz)
 {
 	if ((nr + 1) > *max) {
@@ -82,8 +84,6 @@ struct etna_cmd_stream *etna_cmd_stream_new(struct etna_pipe *pipe, uint32_t siz
 		goto fail;
 	}
 
-	list_inithead(&stream->submit_list);
-
 	stream->base.size = size;
 	stream->pipe = pipe;
 	stream->reset_notify = reset_notify;
@@ -113,6 +113,7 @@ static void reset_buffer(struct etna_cmd_stream *stream)
 	stream->offset = 0;
 	priv->submit.nr_bos = 0;
 	priv->submit.nr_relocs = 0;
+	priv->nr_bos = 0;
 
 	if (priv->reset_notify)
 		priv->reset_notify(stream, priv->reset_notify_priv);
@@ -123,31 +124,54 @@ uint32_t etna_cmd_stream_timestamp(struct etna_cmd_stream *stream)
 	return etna_cmd_stream_priv(stream)->last_timestamp;
 }
 
+static uint32_t append_bo(struct etna_cmd_stream *stream, struct etna_bo *bo)
+{
+	struct etna_cmd_stream_priv *priv = etna_cmd_stream_priv(stream);
+	uint32_t idx;
+
+	idx = APPEND(&priv->submit, bos);
+	idx = APPEND(priv, bos);
+
+	priv->submit.bos[idx].flags = 0;
+	priv->submit.bos[idx].handle = bo->handle;
+
+	priv->bos[idx] = etna_bo_ref(bo);
+
+	return idx;
+}
+
 /* add (if needed) bo, return idx: */
 static uint32_t bo2idx(struct etna_cmd_stream *stream, struct etna_bo *bo,
 		uint32_t flags)
 {
 	struct etna_cmd_stream_priv *priv = etna_cmd_stream_priv(stream);
-	int id = priv->pipe->id;
 	uint32_t idx;
 
-	if (!bo->indexp1[id]) {
-		struct list_head *list = &bo->list[id];
-		idx = APPEND(&priv->submit, bos);
-		priv->submit.bos[idx].flags = 0;
-		priv->submit.bos[idx].handle = bo->handle;
-		bo->indexp1[id] = idx + 1;
+	pthread_mutex_lock(&idx_lock);
 
-		assert(LIST_IS_EMPTY(list));
-		etna_bo_ref(bo);
-		list_addtail(list, &priv->submit_list);
+	if (!bo->current_stream) {
+		idx = append_bo(stream, bo);
+		bo->current_stream = stream;
+		bo->idx = idx;
+	} else if (bo->current_stream == stream) {
+		idx = bo->idx;
 	} else {
-		idx = bo->indexp1[id] - 1;
+		/* slow-path: */
+		for (idx = 0; idx < priv->nr_bos; idx++)
+			if (priv->bos[idx] == bo)
+				break;
+		if (idx == priv->nr_bos) {
+			/* not found */
+			idx = append_bo(stream, bo);
+		}
 	}
+	pthread_mutex_unlock(&idx_lock);
+
 	if (flags & ETNA_RELOC_READ)
 		priv->submit.bos[idx].flags |= ETNA_SUBMIT_BO_READ;
 	if (flags & ETNA_RELOC_WRITE)
 		priv->submit.bos[idx].flags |= ETNA_SUBMIT_BO_WRITE;
+
 	return idx;
 }
 
@@ -156,7 +180,6 @@ static void flush(struct etna_cmd_stream *stream)
 	struct etna_cmd_stream_priv *priv = etna_cmd_stream_priv(stream);
 	int ret, id = priv->pipe->id;
 	struct etna_gpu *gpu = priv->pipe->gpu;
-	struct etna_bo *etna_bo = NULL, *tmp;
 	struct drm_etnaviv_gem_submit req;
 
 	req.pipe = gpu->core;
@@ -177,10 +200,10 @@ static void flush(struct etna_cmd_stream *stream)
 		priv->last_timestamp = req.fence;
 	}
 
-	LIST_FOR_EACH_ENTRY_SAFE(etna_bo, tmp, &priv->submit_list, list[id]) {
-		struct list_head *list = &etna_bo->list[id];
-		list_delinit(list);
-		etna_bo->indexp1[id] = 0;
+	for (uint32_t i = 0; i < priv->nr_bos; i++) {
+		struct etna_bo *bo = priv->bos[i];
+		bo->current_stream = NULL;
+		etna_bo_del(bo);
 	}
 }
 

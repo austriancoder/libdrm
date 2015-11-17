@@ -101,8 +101,15 @@ struct etna_bo {
 	uint64_t        offset;         /* offset to mmap() */
 	atomic_t        refcnt;
 
-	uint32_t indexp1[ETNA_MAX_PIPES]; /* index plus 1 */
-	struct list_head list[ETNA_MAX_PIPES];
+	/* in the common case, a bo won't be referenced by more than a single
+	 * command stream.  So to avoid looping over all the bo's in the
+	 * reloc table to find the idx of a bo that might already be in the
+	 * table, we cache the idx in the bo.  But in order to detect the
+	 * slow-path where bo is ref'd in multiple streams, we also must track
+	 * the current_stream for which the idx is valid.  See bo2idx().
+	 */
+	struct etna_cmd_stream *current_stream;
+	uint32_t idx;
 };
 
 struct etna_gpu {
@@ -120,7 +127,6 @@ struct etna_cmd_stream_priv {
 	struct etna_cmd_stream base;
 	struct etna_pipe *pipe;
 
-	struct list_head submit_list;
 	uint32_t last_timestamp;
 
 	/* submit ioctl related tables: */
@@ -133,6 +139,10 @@ struct etna_cmd_stream_priv {
 		struct drm_etnaviv_gem_submit_reloc *relocs;
 		uint32_t nr_relocs, max_relocs;
 	} submit;
+
+	/* should have matching entries in submit.bos: */
+	struct etna_bo **bos;
+	uint32_t nr_bos, max_bos;
 
 	/* notify callback if buffer reset happend */
 	void (*reset_notify)(struct etna_cmd_stream *stream, void *priv);

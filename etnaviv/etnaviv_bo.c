@@ -56,8 +56,6 @@ static struct etna_bo * lookup_bo(void *tbl, uint32_t handle)
 static struct etna_bo * bo_from_handle(struct etna_device *dev,
 		uint32_t size, uint32_t handle)
 {
-	unsigned int i;
-
 	struct etna_bo *bo = calloc(sizeof(*bo), 1);
 	if (!bo) {
 		struct drm_gem_close req = {
@@ -66,9 +64,6 @@ static struct etna_bo * bo_from_handle(struct etna_device *dev,
 		drmIoctl(dev->fd, DRM_IOCTL_GEM_CLOSE, &req);
 		return NULL;
 	}
-
-	for (i = 0; i < ARRAY_SIZE(bo->list); i++)
-		list_inithead(&bo->list[i]);
 
 	bo->dev = etna_device_ref(dev);
 	bo->size = size;
