@@ -41,6 +41,29 @@ static void set_name(struct etna_bo *bo, uint32_t name)
 	drmHashInsert(bo->dev->name_table, name, bo);
 }
 
+/* Called under table_lock */
+static void bo_del(struct etna_bo *bo)
+{
+	if (bo->map)
+		drm_munmap(bo->map, bo->size);
+
+	if (bo->name)
+		drmHashDelete(bo->dev->name_table, bo->name);
+
+	if (bo->handle) {
+		struct drm_gem_close req = {
+				.handle = bo->handle,
+		};
+
+		drmHashDelete(bo->dev->handle_table, bo->handle);
+
+		drmIoctl(bo->dev->fd, DRM_IOCTL_GEM_CLOSE, &req);
+	}
+
+	etna_device_del(bo->dev);
+	free(bo);
+}
+
 /* lookup a buffer from it's handle, call w/ table_lock held: */
 static struct etna_bo * lookup_bo(void *tbl, uint32_t handle)
 {
@@ -74,18 +97,107 @@ static struct etna_bo * bo_from_handle(struct etna_device *dev,
 	return bo;
 }
 
+/* Frees older cached buffers.  Called under table_lock */
+drm_private void etna_cleanup_bo_cache(struct etna_device *dev, time_t time)
+{
+	unsigned i;
+
+	if (dev->time == time)
+		return;
+
+	for (i = 0; i < dev->num_buckets; i++) {
+		struct etna_bo_bucket *bucket = &dev->cache_bucket[i];
+		struct etna_bo *bo;
+
+		while (!LIST_IS_EMPTY(&bucket->list)) {
+			bo = LIST_ENTRY(struct etna_bo, bucket->list.next, list);
+
+			/* keep things in cache for at least 1 second: */
+			if (time && ((time - bo->free_time) <= 1))
+				break;
+
+			list_del(&bo->list);
+			bo_del(bo);
+		}
+	}
+
+	dev->time = time;
+}
+
+static struct etna_bo_bucket *get_bucket(struct etna_device *dev, uint32_t size)
+{
+	unsigned i;
+
+	/* hmm, this is what intel does, but I suppose we could calculate our
+	 * way to the correct bucket size rather than looping..
+	 */
+	for (i = 0; i < dev->num_buckets; i++) {
+		struct etna_bo_bucket *bucket = &dev->cache_bucket[i];
+		if (bucket->size >= size) {
+			return bucket;
+		}
+	}
+
+	return NULL;
+}
+
+static int is_idle(struct etna_bo *bo)
+{
+	return etna_bo_cpu_prep(bo,
+			DRM_ETNA_PREP_READ |
+			DRM_ETNA_PREP_WRITE |
+			DRM_ETNA_PREP_NOSYNC) == 0;
+}
+
+static struct etna_bo *find_in_bucket(struct etna_device *dev,
+		struct etna_bo_bucket *bucket, uint32_t flags)
+{
+	struct etna_bo *bo = NULL;
+
+	pthread_mutex_lock(&table_lock);
+	while (!LIST_IS_EMPTY(&bucket->list)) {
+		bo = LIST_ENTRY(struct etna_bo, bucket->list.next, list);
+
+		/* TODO check for compatible flags? */
+		if (is_idle(bo)) {
+			list_del(&bo->list);
+			break;
+		}
+		bo = NULL;
+		break;
+	}
+	pthread_mutex_unlock(&table_lock);
+
+	return bo;
+}
+
 /* allocate a new (un-tiled) buffer object */
 struct etna_bo *etna_bo_new(struct etna_device *dev,
 		uint32_t size, uint32_t flags)
 {
+	int ret;
 	struct etna_bo *bo = NULL;
+	struct etna_bo_bucket *bucket;
 
 	struct drm_etnaviv_gem_new req = {
 			.size = size,
 			.flags = flags,
 	};
 
-	int ret;
+	size = ALIGN(size, 4096);
+	bucket = get_bucket(dev, size);
+
+	/* see if we can be green and recycle: */
+	if (bucket) {
+		size = bucket->size;
+		bo = find_in_bucket(dev, bucket, flags);
+		if (bo) {
+			atomic_set(&bo->refcnt, 1);
+			etna_device_ref(bo->dev);
+			return bo;
+		}
+	}
+
 	ret = drmCommandWriteRead(dev->fd, DRM_ETNAVIV_GEM_NEW,
 			&req, sizeof(req));
 	if (ret)
@@ -93,6 +205,7 @@ struct etna_bo *etna_bo_new(struct etna_device *dev,
 
 	pthread_mutex_lock(&table_lock);
 	bo = bo_from_handle(dev, size, req.handle);
+	bo->reuse = 1;
 	pthread_mutex_unlock(&table_lock);
 
 	return bo;
@@ -191,31 +304,42 @@ out_unlock:
 /* destroy a buffer object */
 void etna_bo_del(struct etna_bo *bo)
 {
+	struct etna_device *dev;
+
 	if (!bo)
 		return;
 
 	if (!atomic_dec_and_test(&bo->refcnt))
 		return;
 
-	if (bo->map)
-		drm_munmap(bo->map, bo->size);
+	pthread_mutex_lock(&table_lock);
+	dev = bo->dev;
 
-	if (bo->name)
-		drmHashDelete(bo->dev->name_table, bo->name);
+	if (bo->reuse) {
+		struct etna_bo_bucket *bucket = get_bucket(dev, bo->size);
 
-	if (bo->handle) {
-		struct drm_gem_close req = {
-				.handle = bo->handle,
-		};
-		pthread_mutex_lock(&table_lock);
-		drmHashDelete(bo->dev->handle_table, bo->handle);
-		drmIoctl(bo->dev->fd, DRM_IOCTL_GEM_CLOSE, &req);
-		pthread_mutex_unlock(&table_lock);
+		/* see if we can be green and recycle: */
+		if (bucket) {
+			struct timespec time;
+
+			clock_gettime(CLOCK_MONOTONIC, &time);
+
+			bo->free_time = time.tv_sec;
+			list_addtail(&bo->list, &bucket->list);
+			etna_cleanup_bo_cache(dev, time.tv_sec);
+
+			/* bo's in the bucket cache don't have a ref and
+			 * don't hold a ref to the dev:
+			 */
+
+			goto out;
+		}
 	}
 
-	etna_device_del(bo->dev);
-
-	free(bo);
+	bo_del(bo);
+out:
+	etna_device_del_locked(dev);
+	pthread_mutex_unlock(&table_lock);
 }
 
 /* get the global flink/DRI2 buffer name */
@@ -235,6 +359,7 @@ int etna_bo_get_name(struct etna_bo *bo, uint32_t *name)
 		pthread_mutex_lock(&table_lock);
 		set_name(bo, req.name);
 		pthread_mutex_unlock(&table_lock);
+		bo->reuse = 0;
 	}
 
 	*name = bo->name;
@@ -260,6 +385,8 @@ int etna_bo_dmabuf(struct etna_bo *bo)
 		ERROR_MSG("failed to get dmabuf fd: %d", ret);
 		return ret;
 	}
+
+	bo->reuse = 0;
 
 	return prime_fd;
 }

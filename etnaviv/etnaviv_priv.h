@@ -75,6 +75,11 @@ struct etna_specs {
 	uint32_t varyings_count;
 };
 
+struct etna_bo_bucket {
+	uint32_t size;
+	struct list_head list;
+};
+
 struct etna_device {
 	int fd;
 	atomic_t refcnt;
@@ -89,7 +94,16 @@ struct etna_device {
 	 * open in the process first, before calling gem-open.
 	 */
 	void *handle_table, *name_table;
+
+	struct etna_bo_bucket cache_bucket[14 * 4];
+	unsigned num_buckets;
+	time_t time;
 };
+
+drm_private void etna_cleanup_bo_cache(struct etna_device *dev, time_t time);
+
+/* for where @table_lock is already held: */
+drm_private void etna_device_del_locked(struct etna_device *dev);
 
 /* a GEM buffer object allocated from the DRM device */
 struct etna_bo {
@@ -110,6 +124,10 @@ struct etna_bo {
 	 */
 	struct etna_cmd_stream *current_stream;
 	uint32_t idx;
+
+	int reuse;
+	struct list_head list;   /* bucket-list entry */
+	time_t free_time;        /* time when added to bucket-list */
 };
 
 struct etna_gpu {
