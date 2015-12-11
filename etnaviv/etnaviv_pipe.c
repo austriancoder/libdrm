@@ -33,11 +33,15 @@
 int etna_pipe_wait(struct etna_pipe *pipe, uint32_t timestamp, uint32_t ms)
 {
 	struct etna_device *dev = pipe->gpu->dev;
-	struct drm_etnaviv_wait_fence req = {
-			.pipe = pipe->gpu->core,
-			.fence = timestamp,
-	};
+	struct drm_etnaviv_wait_fence req;
 	int ret;
+
+	memset(&req, 0, sizeof(req));
+	req.pipe = pipe->gpu->core;
+	req.fence = timestamp;
+
+	if (ms == 0)
+		req.flags |= ETNA_WAIT_NONBLOCK;
 
 	get_abs_timeout(&req.timeout, ms);
 
