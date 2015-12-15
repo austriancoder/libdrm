@@ -234,6 +234,7 @@ void etna_cmd_stream_reloc(struct etna_cmd_stream *stream, const struct etna_rel
 	reloc->reloc_idx = bo2idx(stream, r->bo, r->flags);
 	reloc->reloc_offset = r->offset;
 	reloc->submit_offset = stream->offset * 4; /* in bytes */
+	reloc->flags = 0;
 
 	etna_cmd_stream_emit(stream, addr);
 }

@@ -121,6 +121,7 @@ struct drm_etnaviv_gem_submit_reloc {
 	__u32 submit_offset;  /* in, offset from submit_bo */
 	__u32 reloc_idx;      /* in, index of reloc_bo buffer */
 	__u64 reloc_offset;   /* in, offset from start of reloc_bo */
+	__u32 flags;          /* in, placeholder for now, no defined values */
 };
 
 /* Each buffer referenced elsewhere in the cmdstream submit (ie. the
