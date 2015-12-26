@@ -279,6 +279,9 @@ if test "x$drm_cv_atomic_primitives" = "xnone"; then
 
 	LIBDRM_ATOMICS_NOT_FOUND_MSG($TEGRA, tegra, NVIDIA Tegra, tegra-experimental-api)
 	TEGRA=no
+
+	LIBDRM_ATOMICS_NOT_FOUND_MSG($ETNAVIV, etnaviv, Vivante, etnaviv-experimental-api)
+	ETNAVIV=no
 else
 	if test "x$INTEL" = xauto; then
 		case $host_cpu in
