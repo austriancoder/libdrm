@@ -167,7 +167,6 @@ struct etna_cmd_stream_priv {
 		do { drmMsg("[E] " fmt " (%s:%d)\n", \
 				##__VA_ARGS__, __FUNCTION__, __LINE__); } while (0)
 
-#define U642VOID(x) ((void *)(unsigned long)(x))
 #define VOID2U64(x) ((uint64_t)(unsigned long)(x))
 
 static inline void get_abs_timeout(struct drm_etnaviv_timespec *tv, uint32_t ms)
