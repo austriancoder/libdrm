@@ -36,6 +36,7 @@ AM_DISTCHECK_CONFIGURE_FLAGS = \
 	--enable-freedreno \
 	--enable-freedreno-kgsl\
 	--enable-tegra-experimental-api \
+	--enable-etnaviv-experimental-api \
 	--enable-install-test-programs \
 	--enable-cairo-tests \
 	--enable-manpages \
