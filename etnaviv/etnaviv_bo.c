@@ -266,9 +266,6 @@ int etna_bo_dmabuf(struct etna_bo *bo)
 
 uint32_t etna_bo_size(struct etna_bo *bo)
 {
-	if (!bo->size) {
-		get_buffer_info(bo);
-	}
 	return bo->size;
 }
 
