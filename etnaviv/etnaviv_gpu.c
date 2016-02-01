@@ -69,6 +69,8 @@ struct etna_gpu * etna_gpu_new(struct etna_device *dev, unsigned int core)
 	gpu->specs.features[2] = get_param(dev, core, ETNAVIV_PARAM_GPU_FEATURES_2);
 	gpu->specs.features[3] = get_param(dev, core, ETNAVIV_PARAM_GPU_FEATURES_3);
 	gpu->specs.features[4] = get_param(dev, core, ETNAVIV_PARAM_GPU_FEATURES_4);
+	gpu->specs.features[5] = get_param(dev, core, ETNAVIV_PARAM_GPU_FEATURES_5);
+	gpu->specs.features[6] = get_param(dev, core, ETNAVIV_PARAM_GPU_FEATURES_6);
 	gpu->specs.stream_count = get_param(dev, core, ETNA_GPU_STREAM_COUNT);
 	gpu->specs.register_max = get_param(dev, core, ETNA_GPU_REGISTER_MAX);
 	gpu->specs.thread_count = get_param(dev, core, ETNA_GPU_THREAD_COUNT);
@@ -120,6 +122,12 @@ int etna_gpu_get_param(struct etna_gpu *gpu,
 		*value = gpu->specs.features[3];
 		return 0;
 	case ETNA_GPU_FEATURES_4:
+		*value = gpu->specs.features[4];
+		return 0;
+	case ETNA_GPU_FEATURES_5:
+		*value = gpu->specs.features[4];
+		return 0;
+	case ETNA_GPU_FEATURES_6:
 		*value = gpu->specs.features[4];
 		return 0;
 	case ETNA_GPU_STREAM_COUNT:

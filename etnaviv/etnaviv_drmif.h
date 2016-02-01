@@ -51,6 +51,8 @@ enum etna_param_id {
 	ETNA_GPU_FEATURES_2                = 0x5,
 	ETNA_GPU_FEATURES_3                = 0x6,
 	ETNA_GPU_FEATURES_4                = 0x7,
+	ETNA_GPU_FEATURES_5                = 0x8,
+	ETNA_GPU_FEATURES_6                = 0x9,
 
 	ETNA_GPU_STREAM_COUNT              = 0x10,
 	ETNA_GPU_REGISTER_MAX              = 0x11,

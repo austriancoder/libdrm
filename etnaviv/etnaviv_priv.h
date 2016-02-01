@@ -48,7 +48,7 @@
 //#include "drm.h"
 #include "etnaviv_drm.h"
 
-#define VIV_FEATURES_WORD_COUNT 4
+#define VIV_FEATURES_WORD_COUNT 6
 
 struct etna_specs {
 	uint32_t model;
