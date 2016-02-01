@@ -48,20 +48,12 @@
 //#include "drm.h"
 #include "etnaviv_drm.h"
 
-enum etna_features_word
-{
-	etna_chipFeatures = 0,
-	etna_chipMinorFeatures0 = 1,
-	etna_chipMinorFeatures1 = 2,
-	etna_chipMinorFeatures2 = 3,
-	etna_chipMinorFeatures3 = 4,
-	VIV_FEATURES_WORD_COUNT /* Must be last */
-};
+#define VIV_FEATURES_WORD_COUNT 4
 
 struct etna_specs {
 	uint32_t model;
 	uint32_t revision;
-	uint32_t features[VIV_FEATURES_WORD_COUNT];
+	uint32_t features[VIV_FEATURES_WORD_COUNT + 1];
 	uint32_t stream_count;
 	uint32_t register_max;
 	uint32_t thread_count;
