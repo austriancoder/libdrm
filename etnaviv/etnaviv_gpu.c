@@ -41,7 +41,7 @@ static uint64_t get_param(struct etna_device *dev, uint32_t core, uint32_t param
 
 	ret = drmCommandWriteRead(dev->fd, DRM_ETNAVIV_GET_PARAM, &req, sizeof(req));
 	if (ret) {
-		ERROR_MSG("get-param failed! %d (%s)", ret, strerror(errno));
+		ERROR_MSG("get-param (%x) failed! %d (%s)", param, ret, strerror(errno));
 		return 0;
 	}
 
