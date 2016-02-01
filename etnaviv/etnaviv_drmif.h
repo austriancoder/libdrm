@@ -63,7 +63,8 @@ enum etna_param_id {
 	ETNA_GPU_VERTEX_OUTPUT_BUFFER_SIZE = 0x16,
 	ETNA_GPU_BUFFER_SIZE               = 0x17,
 	ETNA_GPU_INSTRUCTION_COUNT         = 0x18,
-	ETNA_GPU_NUM_CONSTANTS             = 0x19
+	ETNA_GPU_NUM_CONSTANTS             = 0x19,
+	ETNA_GPU_NUM_VARYINGS              = 0x1a
 };
 
 /* bo flags: */

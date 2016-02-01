@@ -81,6 +81,7 @@ struct etna_gpu * etna_gpu_new(struct etna_device *dev, unsigned int core)
 	gpu->specs.buffer_size = get_param(dev, core, ETNA_GPU_BUFFER_SIZE);
 	gpu->specs.instruction_count = get_param(dev, core, ETNA_GPU_INSTRUCTION_COUNT);
 	gpu->specs.num_constants = get_param(dev, core, ETNA_GPU_NUM_CONSTANTS);
+	gpu->specs.num_varyings = get_param(dev, core, ETNA_GPU_NUM_VARYINGS);
 
 	if (!gpu->specs.model)
 		goto fail;
@@ -159,6 +160,9 @@ int etna_gpu_get_param(struct etna_gpu *gpu,
 		return 0;
 	case ETNA_GPU_NUM_CONSTANTS:
 		*value = gpu->specs.num_constants;
+		return 0;
+	case ETNA_GPU_NUM_VARYINGS:
+		*value = gpu->specs.num_varyings;
 		return 0;
 
 	default:
