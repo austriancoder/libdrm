@@ -79,7 +79,6 @@ static void gen_cmd_stream(struct etna_cmd_stream *stream, struct etna_bo *bmp, 
 	int rec;
 	static int num_rects = 256;
 
-	etna_set_state(stream, VIVS_DE_SRC_ADDRESS, 0);
 	etna_set_state(stream, VIVS_DE_SRC_STRIDE, 0);
 	etna_set_state(stream, VIVS_DE_SRC_ROTATION_CONFIG, 0);
 	etna_set_state(stream, VIVS_DE_SRC_CONFIG, 0);
