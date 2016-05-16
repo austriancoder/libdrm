@@ -126,10 +126,10 @@ int etna_gpu_get_param(struct etna_gpu *gpu,
 		*value = gpu->specs.features[4];
 		return 0;
 	case ETNA_GPU_FEATURES_5:
-		*value = gpu->specs.features[4];
+		*value = gpu->specs.features[5];
 		return 0;
 	case ETNA_GPU_FEATURES_6:
-		*value = gpu->specs.features[4];
+		*value = gpu->specs.features[6];
 		return 0;
 	case ETNA_GPU_STREAM_COUNT:
 		*value = gpu->specs.stream_count;
