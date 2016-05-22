@@ -428,10 +428,9 @@ int etna_bo_cpu_prep(struct etna_bo *bo, uint32_t op)
 
 void etna_bo_cpu_fini(struct etna_bo *bo)
 {
-	struct drm_etnaviv_gem_cpu_fini req;
-
-	memset(&req, 0, sizeof(req));
-	req.handle = bo->handle;
+	struct drm_etnaviv_gem_cpu_fini req = {
+		.handle = bo->handle,
+	};
 
 	drmCommandWrite(bo->dev->fd, DRM_ETNAVIV_GEM_CPU_FINI,
 			&req, sizeof(req));

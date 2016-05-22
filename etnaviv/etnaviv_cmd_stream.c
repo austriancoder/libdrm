@@ -180,16 +180,17 @@ static void flush(struct etna_cmd_stream *stream)
 	struct etna_cmd_stream_priv *priv = etna_cmd_stream_priv(stream);
 	int ret, id = priv->pipe->id;
 	struct etna_gpu *gpu = priv->pipe->gpu;
-	struct drm_etnaviv_gem_submit req;
 
-	req.pipe = gpu->core;
-	req.exec_state = id;
-	req.bos = VOID2U64(priv->submit.bos);
-	req.nr_bos = priv->submit.nr_bos;
-	req.relocs = VOID2U64(priv->submit.relocs);
-	req.nr_relocs = priv->submit.nr_relocs;
-	req.stream = VOID2U64(stream->buffer);
-	req.stream_size = stream->offset * 4; /* in bytes */
+	struct drm_etnaviv_gem_submit req = {
+		.pipe = gpu->core,
+		.exec_state = id,
+		.bos = VOID2U64(priv->submit.bos),
+		.nr_bos = priv->submit.nr_bos,
+		.relocs = VOID2U64(priv->submit.relocs),
+		.nr_relocs = priv->submit.nr_relocs,
+		.stream = VOID2U64(stream->buffer),
+		.stream_size = stream->offset * 4, /* in bytes */
+	};
 
 	ret = drmCommandWriteRead(gpu->dev->fd, DRM_ETNAVIV_GEM_SUBMIT,
 			&req, sizeof(req));
