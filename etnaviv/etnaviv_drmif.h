@@ -68,8 +68,6 @@ enum etna_param_id {
 };
 
 /* bo flags: */
-#define DRM_ETNA_GEM_TYPE_CMDSTREAM     0x00000001
-#define DRM_ETNA_GEM_TYPE_MEM_MASK      0x0000000f
 #define DRM_ETNA_GEM_CACHE_CACHED       0x00010000
 #define DRM_ETNA_GEM_CACHE_WC           0x00020000
 #define DRM_ETNA_GEM_CACHE_UNCACHED     0x00040000
