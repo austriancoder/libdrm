@@ -60,7 +60,6 @@ static void bo_del(struct etna_bo *bo)
 		drmIoctl(bo->dev->fd, DRM_IOCTL_GEM_CLOSE, &req);
 	}
 
-	etna_device_del(bo->dev);
 	free(bo);
 }
 
@@ -180,7 +179,6 @@ struct etna_bo *etna_bo_new(struct etna_device *dev,
 	struct etna_bo_bucket *bucket;
 
 	struct drm_etnaviv_gem_new req = {
-			.size = size,
 			.flags = flags,
 	};
 
@@ -198,6 +196,7 @@ struct etna_bo *etna_bo_new(struct etna_device *dev,
 		}
 	}
 
+	req.size = size;
 	ret = drmCommandWriteRead(dev->fd, DRM_ETNAVIV_GEM_NEW,
 			&req, sizeof(req));
 	if (ret)
