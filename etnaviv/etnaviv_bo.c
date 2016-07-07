@@ -76,7 +76,7 @@ static struct etna_bo * lookup_bo(void *tbl, uint32_t handle)
 
 /* allocate a new buffer object, call w/ table_lock held */
 static struct etna_bo * bo_from_handle(struct etna_device *dev,
-		uint32_t size, uint32_t handle)
+		uint32_t size, uint32_t handle, uint32_t flags)
 {
 	struct etna_bo *bo = calloc(sizeof(*bo), 1);
 	if (!bo) {
@@ -90,6 +90,7 @@ static struct etna_bo * bo_from_handle(struct etna_device *dev,
 	bo->dev = etna_device_ref(dev);
 	bo->size = size;
 	bo->handle = handle;
+	bo->flags = flags;
 	atomic_set(&bo->refcnt, 1);
 	/* add ourselves to the handle table: */
 	drmHashInsert(dev->handle_table, handle, bo);
@@ -157,8 +158,7 @@ static struct etna_bo *find_in_bucket(struct etna_device *dev,
 	while (!LIST_IS_EMPTY(&bucket->list)) {
 		bo = LIST_ENTRY(struct etna_bo, bucket->list.next, list);
 
-		/* TODO check for compatible flags? */
-		if (is_idle(bo)) {
+		if (bo->flags == flags && is_idle(bo)) {
 			list_del(&bo->list);
 			break;
 		}
@@ -203,7 +203,7 @@ struct etna_bo *etna_bo_new(struct etna_device *dev,
 		return NULL;
 
 	pthread_mutex_lock(&table_lock);
-	bo = bo_from_handle(dev, size, req.handle);
+	bo = bo_from_handle(dev, size, req.handle, flags);
 	bo->reuse = 1;
 	pthread_mutex_unlock(&table_lock);
 
@@ -258,7 +258,7 @@ struct etna_bo * etna_bo_from_name(struct etna_device *dev, uint32_t name)
 	if (bo)
 		goto out_unlock;
 
-	bo = bo_from_handle(dev, req.size, req.handle);
+	bo = bo_from_handle(dev, req.size, req.handle, 0);
 	if (bo)
 		set_name(bo, name);
 
@@ -293,7 +293,7 @@ struct etna_bo * etna_bo_from_dmabuf(struct etna_device *dev, int fd)
 	size = lseek(fd, 0, SEEK_END);
 	lseek(fd, 0, SEEK_CUR);
 
-	bo = bo_from_handle(dev, size, handle);
+	bo = bo_from_handle(dev, size, handle, 0);
 
 out_unlock:
 	pthread_mutex_unlock(&table_lock);

@@ -103,6 +103,7 @@ struct etna_bo {
 	void            *map;           /* userspace mmap'ing (if there is one) */
 	uint32_t        size;
 	uint32_t        handle;
+	uint32_t        flags;
 	uint32_t        name;           /* flink global handle (DRI2 name) */
 	uint64_t        offset;         /* offset to mmap() */
 	atomic_t        refcnt;
