@@ -75,7 +75,7 @@ enum etna_param_id {
 #define DRM_ETNA_GEM_CACHE_UNCACHED     0x00040000
 #define DRM_ETNA_GEM_CACHE_MASK         0x000f0000
 /* map flags */
-#define DRM_ETNA_BO_FORCE_MMU           0x00100000
+#define DRM_ETNA_GEM_FORCE_MMU          0x00100000
 
 /* bo access flags: (keep aligned to ETNA_PREP_x) */
 #define DRM_ETNA_PREP_READ              0x01
