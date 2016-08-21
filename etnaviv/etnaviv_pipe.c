@@ -59,9 +59,9 @@ void etna_pipe_del(struct etna_pipe *pipe)
 	free(pipe);
 }
 
-struct etna_pipe * etna_pipe_new(struct etna_gpu *gpu, enum etna_pipe_id id)
+struct etna_pipe *etna_pipe_new(struct etna_gpu *gpu, enum etna_pipe_id id)
 {
-	struct etna_pipe *pipe = NULL;
+	struct etna_pipe *pipe;
 
 	pipe = calloc(1, sizeof(*pipe));
 	if (!pipe) {

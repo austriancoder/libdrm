@@ -44,6 +44,7 @@ static void *grow(void *ptr, uint32_t nr, uint32_t *max, uint32_t sz)
 			*max = *max * 2;
 		ptr = realloc(ptr, *max * sz);
 	}
+
 	return ptr;
 }
 
@@ -94,6 +95,7 @@ struct etna_cmd_stream *etna_cmd_stream_new(struct etna_pipe *pipe, uint32_t siz
 fail:
 	if (stream)
 		etna_cmd_stream_del(&stream->base);
+
 	return NULL;
 }
 
@@ -195,14 +197,14 @@ static void flush(struct etna_cmd_stream *stream)
 	ret = drmCommandWriteRead(gpu->dev->fd, DRM_ETNAVIV_GEM_SUBMIT,
 			&req, sizeof(req));
 
-	if (ret) {
+	if (ret)
 		ERROR_MSG("submit failed: %d (%s)", ret, strerror(errno));
-	} else {
+	else
 		priv->last_timestamp = req.fence;
-	}
 
 	for (uint32_t i = 0; i < priv->nr_bos; i++) {
 		struct etna_bo *bo = priv->bos[i];
+
 		bo->current_stream = NULL;
 		etna_bo_del(bo);
 	}

@@ -85,14 +85,14 @@ enum etna_param_id {
 /* device functions:
  */
 
-struct etna_device * etna_device_new(int fd);
-struct etna_device * etna_device_ref(struct etna_device *dev);
+struct etna_device *etna_device_new(int fd);
+struct etna_device *etna_device_ref(struct etna_device *dev);
 void etna_device_del(struct etna_device *dev);
 
 /* gpu functions:
  */
 
-struct etna_gpu * etna_gpu_new(struct etna_device *dev, unsigned int core);
+struct etna_gpu *etna_gpu_new(struct etna_device *dev, unsigned int core);
 void etna_gpu_del(struct etna_gpu *gpu);
 int etna_gpu_get_param(struct etna_gpu *gpu, enum etna_param_id param,
 		uint64_t *value);
@@ -101,7 +101,7 @@ int etna_gpu_get_param(struct etna_gpu *gpu, enum etna_param_id param,
 /* pipe functions:
  */
 
-struct etna_pipe * etna_pipe_new(struct etna_gpu *gpu, enum etna_pipe_id id);
+struct etna_pipe *etna_pipe_new(struct etna_gpu *gpu, enum etna_pipe_id id);
 void etna_pipe_del(struct etna_pipe *pipe);
 int etna_pipe_wait(struct etna_pipe *pipe, uint32_t timestamp, uint32_t ms);
 
@@ -109,13 +109,13 @@ int etna_pipe_wait(struct etna_pipe *pipe, uint32_t timestamp, uint32_t ms);
 /* buffer-object functions:
  */
 
-struct etna_bo * etna_bo_new(struct etna_device *dev,
+struct etna_bo *etna_bo_new(struct etna_device *dev,
 		uint32_t size, uint32_t flags);
 struct etna_bo *etna_bo_from_handle(struct etna_device *dev,
 		uint32_t handle, uint32_t size);
-struct etna_bo * etna_bo_from_name(struct etna_device *dev, uint32_t name);
-struct etna_bo * etna_bo_from_dmabuf(struct etna_device *dev, int fd);
-struct etna_bo * etna_bo_ref(struct etna_bo *bo);
+struct etna_bo *etna_bo_from_name(struct etna_device *dev, uint32_t name);
+struct etna_bo *etna_bo_from_dmabuf(struct etna_device *dev, int fd);
+struct etna_bo *etna_bo_ref(struct etna_bo *bo);
 void etna_bo_del(struct etna_bo *bo);
 int etna_bo_get_name(struct etna_bo *bo, uint32_t *name);
 uint32_t etna_bo_handle(struct etna_bo *bo);
@@ -135,7 +135,7 @@ struct etna_cmd_stream {
 	uint32_t size;		/* in 32-bit words */
 };
 
-struct etna_cmd_stream * etna_cmd_stream_new(struct etna_pipe *pipe, uint32_t size,
+struct etna_cmd_stream *etna_cmd_stream_new(struct etna_pipe *pipe, uint32_t size,
 		void (*reset_notify)(struct etna_cmd_stream *stream, void *priv),
 		void *priv);
 void etna_cmd_stream_del(struct etna_cmd_stream *stream);

@@ -52,11 +52,10 @@ static void bo_del(struct etna_bo *bo)
 
 	if (bo->handle) {
 		struct drm_gem_close req = {
-				.handle = bo->handle,
+			.handle = bo->handle,
 		};
 
 		drmHashDelete(bo->dev->handle_table, bo->handle);
-
 		drmIoctl(bo->dev->fd, DRM_IOCTL_GEM_CLOSE, &req);
 	}
 
@@ -64,26 +63,31 @@ static void bo_del(struct etna_bo *bo)
 }
 
 /* lookup a buffer from it's handle, call w/ table_lock held: */
-static struct etna_bo * lookup_bo(void *tbl, uint32_t handle)
+static struct etna_bo *lookup_bo(void *tbl, uint32_t handle)
 {
 	struct etna_bo *bo = NULL;
+
 	if (!drmHashLookup(tbl, handle, (void **)&bo)) {
 		/* found, incr refcnt and return: */
 		bo = etna_bo_ref(bo);
 	}
+
 	return bo;
 }
 
 /* allocate a new buffer object, call w/ table_lock held */
-static struct etna_bo * bo_from_handle(struct etna_device *dev,
+static struct etna_bo *bo_from_handle(struct etna_device *dev,
 		uint32_t size, uint32_t handle, uint32_t flags)
 {
 	struct etna_bo *bo = calloc(sizeof(*bo), 1);
+
 	if (!bo) {
 		struct drm_gem_close req = {
-				.handle = handle,
+			.handle = handle,
 		};
+
 		drmIoctl(dev->fd, DRM_IOCTL_GEM_CLOSE, &req);
+
 		return NULL;
 	}
 
@@ -94,6 +98,7 @@ static struct etna_bo * bo_from_handle(struct etna_device *dev,
 	atomic_set(&bo->refcnt, 1);
 	/* add ourselves to the handle table: */
 	drmHashInsert(dev->handle_table, handle, bo);
+
 	return bo;
 }
 
@@ -162,6 +167,7 @@ static struct etna_bo *find_in_bucket(struct etna_device *dev,
 			list_del(&bo->list);
 			break;
 		}
+
 		bo = NULL;
 		break;
 	}
@@ -171,15 +177,14 @@ static struct etna_bo *find_in_bucket(struct etna_device *dev,
 }
 
 /* allocate a new (un-tiled) buffer object */
-struct etna_bo *etna_bo_new(struct etna_device *dev,
-		uint32_t size, uint32_t flags)
+struct etna_bo *etna_bo_new(struct etna_device *dev, uint32_t size,
+    uint32_t flags)
 {
 	int ret;
-	struct etna_bo *bo = NULL;
+	struct etna_bo *bo;
 	struct etna_bo_bucket *bucket;
-
 	struct drm_etnaviv_gem_new req = {
-			.flags = flags,
+		.flags = flags,
 	};
 
 	size = ALIGN(size, 4096);
@@ -210,19 +215,22 @@ struct etna_bo *etna_bo_new(struct etna_device *dev,
 	return bo;
 }
 
-struct etna_bo * etna_bo_ref(struct etna_bo *bo)
+struct etna_bo *etna_bo_ref(struct etna_bo *bo)
 {
 	atomic_inc(&bo->refcnt);
+
 	return bo;
 }
 
 /* get buffer info */
 static int get_buffer_info(struct etna_bo *bo)
 {
+	int ret;
 	struct drm_etnaviv_gem_info req = {
-			.handle = bo->handle,
+		.handle = bo->handle,
 	};
-	int ret = drmCommandWriteRead(bo->dev->fd, DRM_ETNAVIV_GEM_INFO,
+
+	ret = drmCommandWriteRead(bo->dev->fd, DRM_ETNAVIV_GEM_INFO,
 			&req, sizeof(req));
 	if (ret) {
 		return ret;
@@ -235,12 +243,12 @@ static int get_buffer_info(struct etna_bo *bo)
 }
 
 /* import a buffer object from DRI2 name */
-struct etna_bo * etna_bo_from_name(struct etna_device *dev, uint32_t name)
+struct etna_bo *etna_bo_from_name(struct etna_device *dev, uint32_t name)
 {
-	struct drm_gem_open req = {
-			.name = name,
-	};
 	struct etna_bo *bo;
+	struct drm_gem_open req = {
+		.name = name,
+	};
 
 	pthread_mutex_lock(&table_lock);
 
@@ -272,9 +280,9 @@ out_unlock:
  * fd so caller should close() the fd when it is otherwise done
  * with it (even if it is still using the 'struct etna_bo *')
  */
-struct etna_bo * etna_bo_from_dmabuf(struct etna_device *dev, int fd)
+struct etna_bo *etna_bo_from_dmabuf(struct etna_device *dev, int fd)
 {
-	struct etna_bo *bo = NULL;
+	struct etna_bo *bo;
 	int ret, size;
 	uint32_t handle;
 
@@ -297,6 +305,7 @@ struct etna_bo * etna_bo_from_dmabuf(struct etna_device *dev, int fd)
 
 out_unlock:
 	pthread_mutex_unlock(&table_lock);
+
 	return bo;
 }
 
@@ -346,7 +355,7 @@ int etna_bo_get_name(struct etna_bo *bo, uint32_t *name)
 {
 	if (!bo->name) {
 		struct drm_gem_flink req = {
-				.handle = bo->handle,
+			.handle = bo->handle,
 		};
 		int ret;
 
@@ -395,7 +404,7 @@ uint32_t etna_bo_size(struct etna_bo *bo)
 	return bo->size;
 }
 
-void * etna_bo_map(struct etna_bo *bo)
+void *etna_bo_map(struct etna_bo *bo)
 {
 	if (!bo->map) {
 		if (!bo->offset) {
@@ -409,14 +418,15 @@ void * etna_bo_map(struct etna_bo *bo)
 			bo->map = NULL;
 		}
 	}
+
 	return bo->map;
 }
 
 int etna_bo_cpu_prep(struct etna_bo *bo, uint32_t op)
 {
 	struct drm_etnaviv_gem_cpu_prep req = {
-			.handle = bo->handle,
-			.op = op,
+		.handle = bo->handle,
+		.op = op,
 	};
 
 	get_abs_timeout(&req.timeout, 5000);
@@ -434,4 +444,3 @@ void etna_bo_cpu_fini(struct etna_bo *bo)
 	drmCommandWrite(bo->dev->fd, DRM_ETNAVIV_GEM_CPU_FINI,
 			&req, sizeof(req));
 }
-

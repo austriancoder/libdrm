@@ -81,7 +81,7 @@ static void init_cache_buckets(struct etna_device *dev)
 	}
 }
 
-struct etna_device * etna_device_new(int fd)
+struct etna_device *etna_device_new(int fd)
 {
 	struct etna_device *dev = calloc(sizeof(*dev), 1);
 
@@ -97,9 +97,10 @@ struct etna_device * etna_device_new(int fd)
 	return dev;
 }
 
-struct etna_device * etna_device_ref(struct etna_device *dev)
+struct etna_device *etna_device_ref(struct etna_device *dev)
 {
 	atomic_inc(&dev->refcnt);
+
 	return dev;
 }
 

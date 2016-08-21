@@ -34,8 +34,8 @@
 static uint64_t get_param(struct etna_device *dev, uint32_t core, uint32_t param)
 {
 	struct drm_etnaviv_param req = {
-			.pipe = core,
-			.param = param,
+		.pipe = core,
+		.param = param,
 	};
 	int ret;
 
@@ -48,9 +48,9 @@ static uint64_t get_param(struct etna_device *dev, uint32_t core, uint32_t param
 	return req.value;
 }
 
-struct etna_gpu * etna_gpu_new(struct etna_device *dev, unsigned int core)
+struct etna_gpu *etna_gpu_new(struct etna_device *dev, unsigned int core)
 {
-	struct etna_gpu *gpu = NULL;
+	struct etna_gpu *gpu;
 
 	gpu = calloc(1, sizeof(*gpu));
 	if (!gpu) {
@@ -92,6 +92,7 @@ struct etna_gpu * etna_gpu_new(struct etna_device *dev, unsigned int core)
 fail:
 	if (gpu)
 		etna_gpu_del(gpu);
+
 	return NULL;
 }
 
@@ -100,8 +101,8 @@ void etna_gpu_del(struct etna_gpu *gpu)
 	free(gpu);
 }
 
-int etna_gpu_get_param(struct etna_gpu *gpu,
-		enum etna_param_id param, uint64_t *value)
+int etna_gpu_get_param(struct etna_gpu *gpu, enum etna_param_id param,
+		uint64_t *value)
 {
 	switch(param) {
 	case ETNA_GPU_MODEL:
