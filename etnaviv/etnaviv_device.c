@@ -56,7 +56,7 @@ static void add_bucket(struct etna_bo_cache *cache, int size)
 	cache->num_buckets++;
 }
 
-static void etna_bo_cache_init(struct etna_bo_cache *cache)
+drm_private void etna_bo_cache_init(struct etna_bo_cache *cache)
 {
 	unsigned long size, cache_max_size = 64 * 1024 * 1024;
 
@@ -106,7 +106,7 @@ struct etna_device *etna_device_ref(struct etna_device *dev)
 
 static void etna_device_del_impl(struct etna_device *dev)
 {
-	etna_cleanup_bo_cache(&dev->bo_cache, 0);
+	etna_bo_cache_cleanup(&dev->bo_cache, 0);
 	drmHashDestroy(dev->handle_table);
 	drmHashDestroy(dev->name_table);
 

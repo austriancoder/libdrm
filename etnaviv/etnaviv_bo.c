@@ -106,7 +106,7 @@ static struct etna_bo *bo_from_handle(struct etna_device *dev,
 }
 
 /* Frees older cached buffers.  Called under table_lock */
-drm_private void etna_cleanup_bo_cache(struct etna_bo_cache *cache, time_t time)
+drm_private void etna_bo_cache_cleanup(struct etna_bo_cache *cache, time_t time)
 {
 	unsigned i;
 
@@ -178,23 +178,22 @@ static struct etna_bo *find_in_bucket(struct etna_bo_bucket *bucket, uint32_t fl
 	return bo;
 }
 
-/* allocate a new (un-tiled) buffer object */
-struct etna_bo *etna_bo_new(struct etna_device *dev, uint32_t size,
+/* allocate a new (un-tiled) buffer object
+ *
+ * NOTE: size is potentially rounded up to bucket size
+ */
+drm_private struct etna_bo *etna_bo_cache_alloc(struct etna_bo_cache *cache, uint32_t *size,
     uint32_t flags)
 {
-	int ret;
 	struct etna_bo *bo;
 	struct etna_bo_bucket *bucket;
-	struct drm_etnaviv_gem_new req = {
-		.flags = flags,
-	};
 
-	size = ALIGN(size, 4096);
-	bucket = get_bucket(&dev->bo_cache, size);
+	*size = ALIGN(*size, 4096);
+	bucket = get_bucket(cache, *size);
 
 	/* see if we can be green and recycle: */
 	if (bucket) {
-		size = bucket->size;
+		*size = bucket->size;
 		bo = find_in_bucket(bucket, flags);
 		if (bo) {
 			atomic_set(&bo->refcnt, 1);
@@ -202,6 +201,23 @@ struct etna_bo *etna_bo_new(struct etna_device *dev, uint32_t size,
 			return bo;
 		}
 	}
+
+	return NULL;
+}
+
+/* allocate a new (un-tiled) buffer object */
+struct etna_bo *etna_bo_new(struct etna_device *dev, uint32_t size,
+		uint32_t flags)
+{
+	struct etna_bo *bo;
+	int ret;
+	struct drm_etnaviv_gem_new req = {
+			.flags = flags,
+	};
+
+	bo = etna_bo_cache_alloc(&dev->bo_cache, &size, flags);
+	if (bo)
+		return bo;
 
 	req.size = size;
 	ret = drmCommandWriteRead(dev->fd, DRM_ETNAVIV_GEM_NEW,
@@ -311,10 +327,35 @@ out_unlock:
 	return bo;
 }
 
+drm_private int etna_bo_cache_free(struct etna_bo_cache *cache, struct etna_bo *bo)
+{
+	struct etna_bo_bucket *bucket = get_bucket(cache, bo->size);
+
+	/* see if we can be green and recycle: */
+	if (bucket) {
+		struct timespec time;
+
+		clock_gettime(CLOCK_MONOTONIC, &time);
+
+		bo->free_time = time.tv_sec;
+		list_addtail(&bo->list, &bucket->list);
+		etna_bo_cache_cleanup(cache, time.tv_sec);
+
+		/* bo's in the bucket cache don't have a ref and
+		 * don't hold a ref to the dev:
+		 */
+		etna_device_del_locked(bo->dev);
+
+		return 0;
+	}
+
+	return -1;
+}
+
 /* destroy a buffer object */
 void etna_bo_del(struct etna_bo *bo)
 {
-	struct etna_device *dev;
+	struct etna_device *dev = bo->dev;
 
 	if (!bo)
 		return;
@@ -323,32 +364,13 @@ void etna_bo_del(struct etna_bo *bo)
 		return;
 
 	pthread_mutex_lock(&table_lock);
-	dev = bo->dev;
 
-	if (bo->reuse) {
-		struct etna_bo_bucket *bucket = get_bucket(&dev->bo_cache, bo->size);
-
-		/* see if we can be green and recycle: */
-		if (bucket) {
-			struct timespec time;
-
-			clock_gettime(CLOCK_MONOTONIC, &time);
-
-			bo->free_time = time.tv_sec;
-			list_addtail(&bo->list, &bucket->list);
-			etna_cleanup_bo_cache(&dev->bo_cache, time.tv_sec);
-
-			/* bo's in the bucket cache don't have a ref and
-			 * don't hold a ref to the dev:
-			 */
-
-			goto out;
-		}
-	}
+	if (bo->reuse && (etna_bo_cache_free(&dev->bo_cache, bo) == 0))
+		goto out;
 
 	bo_del(bo);
-out:
 	etna_device_del_locked(dev);
+out:
 	pthread_mutex_unlock(&table_lock);
 }
 
