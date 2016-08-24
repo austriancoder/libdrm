@@ -31,7 +31,8 @@
 #include "etnaviv_priv.h"
 #include "etnaviv_drmif.h"
 
-static pthread_mutex_t table_lock = PTHREAD_MUTEX_INITIALIZER;
+drm_private pthread_mutex_t table_lock = PTHREAD_MUTEX_INITIALIZER;
+drm_private void bo_del(struct etna_bo *bo);
 
 /* set buffer name, and add to table, call w/ table_lock held: */
 static void set_name(struct etna_bo *bo, uint32_t name)
@@ -42,7 +43,7 @@ static void set_name(struct etna_bo *bo, uint32_t name)
 }
 
 /* Called under table_lock */
-static void bo_del(struct etna_bo *bo)
+drm_private void bo_del(struct etna_bo *bo)
 {
 	if (bo->map)
 		drm_munmap(bo->map, bo->size);
@@ -103,106 +104,6 @@ static struct etna_bo *bo_from_handle(struct etna_device *dev,
 	drmHashInsert(dev->handle_table, handle, bo);
 
 	return bo;
-}
-
-/* Frees older cached buffers.  Called under table_lock */
-drm_private void etna_bo_cache_cleanup(struct etna_bo_cache *cache, time_t time)
-{
-	unsigned i;
-
-	if (cache->time == time)
-		return;
-
-	for (i = 0; i < cache->num_buckets; i++) {
-		struct etna_bo_bucket *bucket = &cache->cache_bucket[i];
-		struct etna_bo *bo;
-
-		while (!LIST_IS_EMPTY(&bucket->list)) {
-			bo = LIST_ENTRY(struct etna_bo, bucket->list.next, list);
-
-			/* keep things in cache for at least 1 second: */
-			if (time && ((time - bo->free_time) <= 1))
-				break;
-
-			list_del(&bo->list);
-			bo_del(bo);
-		}
-	}
-
-	cache->time = time;
-}
-
-static struct etna_bo_bucket *get_bucket(struct etna_bo_cache *cache, uint32_t size)
-{
-	unsigned i;
-
-	/* hmm, this is what intel does, but I suppose we could calculate our
-	 * way to the correct bucket size rather than looping..
-	 */
-	for (i = 0; i < cache->num_buckets; i++) {
-		struct etna_bo_bucket *bucket = &cache->cache_bucket[i];
-		if (bucket->size >= size) {
-			return bucket;
-		}
-	}
-
-	return NULL;
-}
-
-static int is_idle(struct etna_bo *bo)
-{
-	return etna_bo_cpu_prep(bo,
-			DRM_ETNA_PREP_READ |
-			DRM_ETNA_PREP_WRITE |
-			DRM_ETNA_PREP_NOSYNC) == 0;
-}
-
-static struct etna_bo *find_in_bucket(struct etna_bo_bucket *bucket, uint32_t flags)
-{
-	struct etna_bo *bo = NULL;
-
-	pthread_mutex_lock(&table_lock);
-	while (!LIST_IS_EMPTY(&bucket->list)) {
-		bo = LIST_ENTRY(struct etna_bo, bucket->list.next, list);
-
-		if (bo->flags == flags && is_idle(bo)) {
-			list_del(&bo->list);
-			break;
-		}
-
-		bo = NULL;
-		break;
-	}
-	pthread_mutex_unlock(&table_lock);
-
-	return bo;
-}
-
-/* allocate a new (un-tiled) buffer object
- *
- * NOTE: size is potentially rounded up to bucket size
- */
-drm_private struct etna_bo *etna_bo_cache_alloc(struct etna_bo_cache *cache, uint32_t *size,
-    uint32_t flags)
-{
-	struct etna_bo *bo;
-	struct etna_bo_bucket *bucket;
-
-	*size = ALIGN(*size, 4096);
-	bucket = get_bucket(cache, *size);
-
-	/* see if we can be green and recycle: */
-	if (bucket) {
-		*size = bucket->size;
-		bo = find_in_bucket(bucket, flags);
-		if (bo) {
-			atomic_set(&bo->refcnt, 1);
-			etna_device_ref(bo->dev);
-			return bo;
-		}
-	}
-
-	return NULL;
 }
 
 /* allocate a new (un-tiled) buffer object */
@@ -325,31 +226,6 @@ out_unlock:
 	pthread_mutex_unlock(&table_lock);
 
 	return bo;
-}
-
-drm_private int etna_bo_cache_free(struct etna_bo_cache *cache, struct etna_bo *bo)
-{
-	struct etna_bo_bucket *bucket = get_bucket(cache, bo->size);
-
-	/* see if we can be green and recycle: */
-	if (bucket) {
-		struct timespec time;
-
-		clock_gettime(CLOCK_MONOTONIC, &time);
-
-		bo->free_time = time.tv_sec;
-		list_addtail(&bo->list, &bucket->list);
-		etna_bo_cache_cleanup(cache, time.tv_sec);
-
-		/* bo's in the bucket cache don't have a ref and
-		 * don't hold a ref to the dev:
-		 */
-		etna_device_del_locked(bo->dev);
-
-		return 0;
-	}
-
-	return -1;
 }
 
 /* destroy a buffer object */
