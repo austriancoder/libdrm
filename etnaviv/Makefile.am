@@ -24,4 +24,4 @@ pkgconfigdir = @pkgconfigdir@
 pkgconfig_DATA = libdrm_etnaviv.pc
 
 TESTS = etnaviv-symbol-check
-EXTRA_DIST = Android.mk $(TESTS)
+EXTRA_DIST = $(TESTS)
