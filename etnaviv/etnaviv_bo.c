@@ -100,6 +100,7 @@ static struct etna_bo *bo_from_handle(struct etna_device *dev,
 	bo->handle = handle;
 	bo->flags = flags;
 	atomic_set(&bo->refcnt, 1);
+	list_inithead(&bo->list);
 	/* add ourselves to the handle table: */
 	drmHashInsert(dev->handle_table, handle, bo);
 
