@@ -72,6 +72,12 @@ struct etna_bo_bucket {
 	struct list_head list;
 };
 
+struct etna_bo_cache {
+	struct etna_bo_bucket cache_bucket[14 * 4];
+	unsigned num_buckets;
+	time_t time;
+};
+
 struct etna_device {
 	int fd;
 	atomic_t refcnt;
@@ -87,12 +93,10 @@ struct etna_device {
 	 */
 	void *handle_table, *name_table;
 
-	struct etna_bo_bucket cache_bucket[14 * 4];
-	unsigned num_buckets;
-	time_t time;
+	struct etna_bo_cache bo_cache;
 };
 
-drm_private void etna_cleanup_bo_cache(struct etna_device *dev, time_t time);
+drm_private void etna_cleanup_bo_cache(struct etna_bo_cache *cache, time_t time);
 
 /* for where @table_lock is already held: */
 drm_private void etna_device_del_locked(struct etna_device *dev);

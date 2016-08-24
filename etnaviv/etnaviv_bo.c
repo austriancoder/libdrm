@@ -106,15 +106,15 @@ static struct etna_bo *bo_from_handle(struct etna_device *dev,
 }
 
 /* Frees older cached buffers.  Called under table_lock */
-drm_private void etna_cleanup_bo_cache(struct etna_device *dev, time_t time)
+drm_private void etna_cleanup_bo_cache(struct etna_bo_cache *cache, time_t time)
 {
 	unsigned i;
 
-	if (dev->time == time)
+	if (cache->time == time)
 		return;
 
-	for (i = 0; i < dev->num_buckets; i++) {
-		struct etna_bo_bucket *bucket = &dev->cache_bucket[i];
+	for (i = 0; i < cache->num_buckets; i++) {
+		struct etna_bo_bucket *bucket = &cache->cache_bucket[i];
 		struct etna_bo *bo;
 
 		while (!LIST_IS_EMPTY(&bucket->list)) {
@@ -129,18 +129,18 @@ drm_private void etna_cleanup_bo_cache(struct etna_device *dev, time_t time)
 		}
 	}
 
-	dev->time = time;
+	cache->time = time;
 }
 
-static struct etna_bo_bucket *get_bucket(struct etna_device *dev, uint32_t size)
+static struct etna_bo_bucket *get_bucket(struct etna_bo_cache *cache, uint32_t size)
 {
 	unsigned i;
 
 	/* hmm, this is what intel does, but I suppose we could calculate our
 	 * way to the correct bucket size rather than looping..
 	 */
-	for (i = 0; i < dev->num_buckets; i++) {
-		struct etna_bo_bucket *bucket = &dev->cache_bucket[i];
+	for (i = 0; i < cache->num_buckets; i++) {
+		struct etna_bo_bucket *bucket = &cache->cache_bucket[i];
 		if (bucket->size >= size) {
 			return bucket;
 		}
@@ -157,8 +157,7 @@ static int is_idle(struct etna_bo *bo)
 			DRM_ETNA_PREP_NOSYNC) == 0;
 }
 
-static struct etna_bo *find_in_bucket(struct etna_device *dev,
-		struct etna_bo_bucket *bucket, uint32_t flags)
+static struct etna_bo *find_in_bucket(struct etna_bo_bucket *bucket, uint32_t flags)
 {
 	struct etna_bo *bo = NULL;
 
@@ -191,12 +190,12 @@ struct etna_bo *etna_bo_new(struct etna_device *dev, uint32_t size,
 	};
 
 	size = ALIGN(size, 4096);
-	bucket = get_bucket(dev, size);
+	bucket = get_bucket(&dev->bo_cache, size);
 
 	/* see if we can be green and recycle: */
 	if (bucket) {
 		size = bucket->size;
-		bo = find_in_bucket(dev, bucket, flags);
+		bo = find_in_bucket(bucket, flags);
 		if (bo) {
 			atomic_set(&bo->refcnt, 1);
 			etna_device_ref(bo->dev);
@@ -327,7 +326,7 @@ void etna_bo_del(struct etna_bo *bo)
 	dev = bo->dev;
 
 	if (bo->reuse) {
-		struct etna_bo_bucket *bucket = get_bucket(dev, bo->size);
+		struct etna_bo_bucket *bucket = get_bucket(&dev->bo_cache, bo->size);
 
 		/* see if we can be green and recycle: */
 		if (bucket) {
@@ -337,7 +336,7 @@ void etna_bo_del(struct etna_bo *bo)
 
 			bo->free_time = time.tv_sec;
 			list_addtail(&bo->list, &bucket->list);
-			etna_cleanup_bo_cache(dev, time.tv_sec);
+			etna_cleanup_bo_cache(&dev->bo_cache, time.tv_sec);
 
 			/* bo's in the bucket cache don't have a ref and
 			 * don't hold a ref to the dev:
