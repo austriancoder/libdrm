@@ -70,6 +70,9 @@ static struct etna_bo *lookup_bo(void *tbl, uint32_t handle)
 	if (!drmHashLookup(tbl, handle, (void **)&bo)) {
 		/* found, incr refcnt and return: */
 		bo = etna_bo_ref(bo);
+
+		/* don't break the bucket if this bo was found in one */
+		list_delinit(&bo->list);
 	}
 
 	return bo;
