@@ -61,6 +61,27 @@ static void test_cache(struct etna_device *dev)
 	printf("ok\n");
 }
 
+static void test_pow2(struct etna_device *dev)
+{
+	struct etna_bo *bo;
+
+	printf("testing size rounding ... ");
+
+	bo = etna_bo_new(dev, 15, ETNA_BO_UNCACHED);
+	assert(etna_bo_size(bo) == 4096);
+	etna_bo_del(bo);
+
+	bo = etna_bo_new(dev, 4096, ETNA_BO_UNCACHED);
+	assert(etna_bo_size(bo) == 4096);
+	etna_bo_del(bo);
+
+	bo = etna_bo_new(dev, 4100, ETNA_BO_UNCACHED);
+	assert(etna_bo_size(bo) == 8192);
+	etna_bo_del(bo);
+
+	printf("ok\n");
+}
+
 int main(int argc, char *argv[])
 {
 	struct etna_device *dev;
@@ -90,6 +111,7 @@ int main(int argc, char *argv[])
 
 
 	test_cache(dev);
+	test_pow2(dev);
 
 fail:
 	if (dev)
