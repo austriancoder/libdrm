@@ -20,8 +20,12 @@ etnaviv_2d_test_LDADD = \
 	$(top_builddir)/etnaviv/libdrm_etnaviv.la
 
 etnaviv_2d_test_SOURCES = \
+	cmdstream.xml.h \
 	etnaviv_2d_test.c \
-	write_bmp.c
+	state.xml.h \
+	state_2d.xml.h \
+	write_bmp.c \
+	write_bmp.h
 
 etnaviv_cmd_stream_test_LDADD = \
 	$(top_builddir)/etnaviv/libdrm_etnaviv.la
