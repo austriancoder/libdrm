@@ -61,7 +61,7 @@ static void test_cache(struct etna_device *dev)
 	printf("ok\n");
 }
 
-static void test_pow2(struct etna_device *dev)
+static void test_size_rounding(struct etna_device *dev)
 {
 	struct etna_bo *bo;
 
@@ -109,9 +109,8 @@ int main(int argc, char *argv[])
 		goto fail;
 	}
 
-
 	test_cache(dev);
-	test_pow2(dev);
+	test_size_rounding(dev);
 
 fail:
 	if (dev)
