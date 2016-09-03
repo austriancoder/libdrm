@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # The following symbols (past the first five) are taken from the public headers.
-# A list of the latter should be available Makefile.sources/LIBDRM_FREEDRENO_H_FILES
+# A list of the latter should be available Makefile.sources/LIBDRM_ETNAVIV_H_FILES
 
 FUNCS=$(nm -D --format=bsd --defined-only ${1-.libs/libdrm_etnaviv.so} | awk '{print $3}'| while read func; do
 ( grep -q "^$func$" || echo $func )  <<EOF
