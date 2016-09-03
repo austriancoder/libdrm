@@ -19,6 +19,10 @@
 
 #include "drm.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 /* Please note that modifications to all structs defined here are
  * subject to backwards-compatibility constraints:
  *  1) Do not use pointers, use __u64 instead for 32 bit / 64 bit
@@ -176,7 +180,7 @@ struct drm_etnaviv_gem_submit {
 struct drm_etnaviv_wait_fence {
 	__u32 pipe;           /* in */
 	__u32 fence;          /* in */
-	__u32 flags;          /* in, mask of ETNA_WAIT_x  */
+	__u32 flags;          /* in, mask of ETNA_WAIT_x */
 	__u32 pad;
 	struct drm_etnaviv_timespec timeout;   /* in */
 };
@@ -193,7 +197,7 @@ struct drm_etnaviv_gem_userptr {
 struct drm_etnaviv_gem_wait {
 	__u32 pipe;				/* in */
 	__u32 handle;				/* in, bo to be waited for */
-	__u32 flags;                            /* in, mask of ETNA_WAIT_x  */
+	__u32 flags;				/* in, mask of ETNA_WAIT_x  */
 	__u32 pad;
 	struct drm_etnaviv_timespec timeout;	/* in */
 };
@@ -221,5 +225,9 @@ struct drm_etnaviv_gem_wait {
 #define DRM_IOCTL_ETNAVIV_WAIT_FENCE   DRM_IOW(DRM_COMMAND_BASE + DRM_ETNAVIV_WAIT_FENCE, struct drm_etnaviv_wait_fence)
 #define DRM_IOCTL_ETNAVIV_GEM_USERPTR  DRM_IOWR(DRM_COMMAND_BASE + DRM_ETNAVIV_GEM_USERPTR, struct drm_etnaviv_gem_userptr)
 #define DRM_IOCTL_ETNAVIV_GEM_WAIT     DRM_IOW(DRM_COMMAND_BASE + DRM_ETNAVIV_GEM_WAIT, struct drm_etnaviv_gem_wait)
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif /* __ETNAVIV_DRM_H__ */
