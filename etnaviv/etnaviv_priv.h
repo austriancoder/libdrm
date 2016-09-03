@@ -47,12 +47,12 @@
 #include "etnaviv_drmif.h"
 #include "etnaviv_drm.h"
 
-#define VIV_FEATURES_WORD_COUNT 6
+#define VIV_FEATURES_WORD_COUNT 7
 
 struct etna_specs {
 	uint32_t model;
 	uint32_t revision;
-	uint32_t features[VIV_FEATURES_WORD_COUNT + 1];
+	uint32_t features[VIV_FEATURES_WORD_COUNT];
 	uint32_t stream_count;
 	uint32_t register_max;
 	uint32_t thread_count;
