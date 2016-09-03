@@ -106,16 +106,15 @@ int main(int argc, char *argv[])
 	dev = etna_device_new(fd);
 	if (!dev) {
 		ret = 2;
-		goto fail;
+		goto out;
 	}
 
 	test_cache(dev);
 	test_size_rounding(dev);
 
-fail:
-	if (dev)
-		etna_device_del(dev);
+	etna_device_del(dev);
 
+out:
 	close(fd);
 
 	return ret;

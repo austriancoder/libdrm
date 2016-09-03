@@ -183,33 +183,33 @@ int main(int argc, char *argv[])
 	dev = etna_device_new(fd);
 	if (!dev) {
 		ret = 2;
-		goto fail;
+		goto out;
 	}
 
 	/* TODO: we assume that core 0 is a 2D capable one */
 	gpu = etna_gpu_new(dev, 0);
 	if (!gpu) {
 		ret = 3;
-		goto fail;
+		goto out_device;
 	}
 
 	pipe = etna_pipe_new(gpu, ETNA_PIPE_2D);
 	if (!pipe) {
 		ret = 4;
-		goto fail;
+		goto out_gpu;
 	}
 
 	bmp = etna_bo_new(dev, bmp_size, ETNA_BO_UNCACHED);
 	if (!bmp) {
 		ret = 5;
-		goto fail;
+		goto out_pipe;
 	}
 	memset(etna_bo_map(bmp), 0, bmp_size);
 
 	stream = etna_cmd_stream_new(pipe, 0x300, NULL, NULL);
 	if (!stream) {
 		ret = 6;
-		goto fail;
+		goto out_bo;
 	}
 
 	/* generate command sequence */
@@ -219,19 +219,21 @@ int main(int argc, char *argv[])
 
 	bmp_dump32(etna_bo_map(bmp), width, height, false, "/tmp/etna.bmp");
 
-fail:
-	if (stream)
-		etna_cmd_stream_del(stream);
+	etna_cmd_stream_del(stream);
 
-	if (pipe)
-		etna_pipe_del(pipe);
+out_bo:
+    etna_bo_del(bmp);
 
-	if (gpu)
-		etna_gpu_del(gpu);
+out_pipe:
+	etna_pipe_del(pipe);
 
-	if (dev)
-		etna_device_del(dev);
+out_gpu:
+	etna_gpu_del(gpu);
 
+out_device:
+	etna_device_del(dev);
+
+out:
 	close(fd);
 
 	return ret;
