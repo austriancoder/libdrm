@@ -8,7 +8,7 @@ AM_CFLAGS = \
 
 libdrm_etnaviv_ladir = $(libdir)
 libdrm_etnaviv_la_LTLIBRARIES = libdrm_etnaviv.la
-libdrm_etnaviv_la_LDFLAGS = -version-number 0:0:0 -no-undefined
+libdrm_etnaviv_la_LDFLAGS = -version-number 1:0:0 -no-undefined
 libdrm_etnaviv_la_LIBADD = \
 	../libdrm.la \
 	@PTHREADSTUBS_LIBS@ \
