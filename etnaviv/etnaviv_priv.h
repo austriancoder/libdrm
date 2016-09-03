@@ -45,7 +45,6 @@
 #include "util_double_list.h"
 
 #include "etnaviv_drmif.h"
-//#include "drm.h"
 #include "etnaviv_drm.h"
 
 #define VIV_FEATURES_WORD_COUNT 6
