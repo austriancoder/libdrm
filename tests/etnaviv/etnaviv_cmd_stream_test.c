@@ -45,7 +45,7 @@ static void test_avail()
 	assert(stream);
 	assert(etna_cmd_stream_avail(stream) == 2);
 	etna_cmd_stream_del(stream);
-	
+
 	stream = etna_cmd_stream_new(NULL, 20, NULL, NULL);
 	assert(stream);
 	assert(etna_cmd_stream_avail(stream) == 18);
@@ -74,7 +74,7 @@ static void test_emit()
 	stream = etna_cmd_stream_new(NULL, 6, NULL, NULL);
 	assert(stream);
 	assert(etna_cmd_stream_avail(stream) == 4);
-	
+
 	etna_cmd_stream_emit(stream, 0x1);
 	assert(etna_cmd_stream_avail(stream) == 3);
 
