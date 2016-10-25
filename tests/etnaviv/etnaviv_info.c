@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <inttypes.h>
 
 #include "xf86drm.h"
 #include "etnaviv_drmif.h"
@@ -42,7 +43,7 @@
 		fprintf(stderr, "could not get " #x); \
 		goto out_gpu; \
 	} \
-	printf(#x ": %lx\n", val);
+	printf(#x ": 0x%" PRIx64 "\n", val);
 
 int main(int argc, char *argv[])
 {
