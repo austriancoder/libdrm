@@ -188,4 +188,16 @@ struct etna_reloc {
 
 void etna_cmd_stream_reloc(struct etna_cmd_stream *stream, const struct etna_reloc *r);
 
+
+struct etna_readback {
+	struct etna_bo *bo;
+	uint32_t reg;
+	uint32_t offset;
+	uint32_t flags;
+	uint32_t perf_reg;
+	uint32_t perf_value;
+};
+
+void etna_cmd_stream_readback(struct etna_cmd_stream *stream, const struct etna_readback *r);
+
 #endif /* ETNAVIV_DRMIF_H_ */
