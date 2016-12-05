@@ -158,6 +158,10 @@ struct etna_cmd_stream_priv {
 		/* reloc's table: */
 		struct drm_etnaviv_gem_submit_reloc *relocs;
 		uint32_t nr_relocs, max_relocs;
+
+		/* perf's table: */
+		struct drm_etnaviv_gem_submit_perf *perfs;
+		uint32_t nr_perfs, max_perfs;
 	} submit;
 
 	/* should have matching entries in submit.bos: */
