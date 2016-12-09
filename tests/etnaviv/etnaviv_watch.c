@@ -157,11 +157,14 @@ int main(int argc, char *argv[])
 	uint32_t *values;
 
 	drmVersionPtr version;
-	int fd, ret = 0;
+	int fd, ret, core = 0;
 
 	fd = open(argv[1], O_RDWR);
 	if (fd < 0)
 		return 1;
+
+	if (argc == 3)
+		core = atoi(argv[2]);
 
 	version = drmGetVersion(fd);
 	if (version) {
@@ -179,7 +182,7 @@ int main(int argc, char *argv[])
 		goto out;
 	}
 
-	gpu = etna_gpu_new(dev, 0);
+	gpu = etna_gpu_new(dev, core);
 	if (!gpu) {
 		ret = 3;
 		goto out_device;
