@@ -149,6 +149,9 @@ int etna_gpu_get_param(struct etna_gpu *gpu, enum etna_param_id param,
 	case ETNA_GPU_NUM_VARYINGS:
 		*value = get_param(dev, core, ETNA_GPU_NUM_VARYINGS);
 		return 0;
+	case ETNA_GPU_PERF:
+		*value = get_param(dev, core, ETNAVIV_PARAM_GPU_PERF);
+		return 0;
 
 	default:
 		ERROR_MSG("invalid param id: %d", param);
