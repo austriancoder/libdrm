@@ -3517,6 +3517,8 @@ static int drmParsePlatformBusInfo(int maj, int min, drmPlatformBusInfoPtr info)
 
     name = sysfs_uevent_get(path, "OF_FULLNAME");
     if (!name)
+        name = sysfs_uevent_get(path, "DRIVER");
+    if (!name)
         return -ENOENT;
 
     strncpy(info->fullname, name, DRM_PLATFORM_DEVICE_NAME_LEN);
