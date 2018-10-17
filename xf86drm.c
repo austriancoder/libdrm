@@ -3537,17 +3537,16 @@ static int drmParsePlatformDeviceInfo(int maj, int min,
 {
 #ifdef __linux__
     char path[PATH_MAX + 1], *value;
-    unsigned int count, i;
+    unsigned int count = 0, i;
     int err;
 
     snprintf(path, sizeof(path), "/sys/dev/char/%d:%d/device", maj, min);
 
     value = sysfs_uevent_get(path, "OF_COMPATIBLE_N");
-    if (!value)
-        return -ENOENT;
-
-    sscanf(value, "%u", &count);
-    free(value);
+    if (value) {
+        sscanf(value, "%u", &count);
+        free(value);
+    }
 
     info->compatible = calloc(count + 1, sizeof(*info->compatible));
     if (!info->compatible)
