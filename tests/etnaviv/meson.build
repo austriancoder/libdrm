@@ -43,3 +43,11 @@ etnaviv_bo_cache_test = executable(
   link_with : [libdrm, libdrm_etnaviv],
   install : with_install_tests,
 )
+
+etnaviv_yuv_test = executable(
+  'etnaviv_yuv_test',
+  files('etnaviv_yuv_test.c', 'write_bmp.c'),
+  include_directories : inc_etnaviv_tests,
+  link_with : [libdrm, libdrm_etnaviv],
+  install : with_install_tests,
+)
